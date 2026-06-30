@@ -361,7 +361,17 @@ func _enter_lobby_scene() -> void:
 		in_lobby = true
 		return
 	in_lobby = true
-	get_tree().change_scene_to_file(LOBBY_SCENE)
+	_change_scene_deferred(LOBBY_SCENE)
+
+
+func _change_scene_deferred(scene_path: String) -> void:
+	call_deferred("_change_scene_now", scene_path)
+
+
+func _change_scene_now(scene_path: String) -> void:
+	if get_tree().current_scene != null and get_tree().current_scene.scene_file_path == scene_path:
+		return
+	get_tree().change_scene_to_file(scene_path)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -381,7 +391,7 @@ func _apply_begin_match(player_count: int) -> void:
 		return
 	if get_tree().current_scene.scene_file_path == MATCH_SCENE:
 		return
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	_change_scene_deferred(MATCH_SCENE)
 
 
 func _start_dedicated_match_sim() -> void:

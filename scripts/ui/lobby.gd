@@ -31,8 +31,8 @@ func _ready() -> void:
 		NetworkManager.MIN_PLAYERS_TO_START, NetworkManager.MAX_LOBBY_PLAYERS
 	]
 	name_input.text = GameConfig.get_player_name()
-	_build_slot_widgets()
-	_refresh_ui()
+	call_deferred("_build_slot_widgets")
+	call_deferred("_refresh_ui")
 	NetworkManager.lobby_status_changed.connect(_on_lobby_status_changed)
 	NetworkManager.lobby_updated.connect(_refresh_ui)
 	NetworkManager.peer_disconnected.connect(func(_id): _refresh_ui())

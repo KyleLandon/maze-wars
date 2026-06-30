@@ -26,9 +26,8 @@ static func ensure_timeline(
 	hbox.name = "WaveContentHBox"
 	hbox.add_theme_constant_override("separation", 10)
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-
-	wave_chip.remove_child(wave_vbox)
-	hbox.add_child(wave_vbox)
+	wave_chip.add_child(hbox)
+	wave_vbox.reparent(hbox)
 
 	var timeline_slot := VBoxContainer.new()
 	timeline_slot.name = "WaveTimelineSlot"
@@ -40,7 +39,6 @@ static func ensure_timeline(
 	timeline_slot.add_child(timeline)
 	hbox.add_child(timeline_slot)
 
-	wave_chip.add_child(hbox)
 	wave_chip.custom_minimum_size = Vector2(300, 52)
 	wave_preview_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	wave_preview_label.clip_text = true

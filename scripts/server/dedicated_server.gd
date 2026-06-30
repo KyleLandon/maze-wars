@@ -61,12 +61,14 @@ func host_match_simulation(_player_count: int) -> void:
 
 
 func unload_match_simulation() -> void:
-	if _match_root != null:
-		_match_root.queue_free()
-		_match_root = null
+	if _match_root == null:
+		return
+	var root := _match_root
+	_match_root = null
 	_phase = "lobby"
+	root.call_deferred("queue_free")
 	_log("Returned to lobby")
-	_refresh_ui()
+	call_deferred("_refresh_ui")
 
 
 func _on_status_changed(text: String) -> void:

@@ -4,6 +4,10 @@ extends Node
 
 
 func _ready() -> void:
+	call_deferred("_boot")
+
+
+func _boot() -> void:
 	if _is_dedicated_server():
 		get_tree().change_scene_to_file("res://scenes/server/dedicated_server.tscn")
 	else:
