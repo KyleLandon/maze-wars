@@ -137,8 +137,9 @@ func join_game(address: String, port: int = DEFAULT_PORT) -> Error:
 	_match_loading = false
 	var trimmed := address.strip_edges()
 	if trimmed.is_empty():
-		_set_status("Enter the host IP address first.")
+		_set_status("Enter the server IP address first.")
 		return ERR_INVALID_PARAMETER
+	GameConfig.set_last_server_address(trimmed)
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_client(trimmed, port)
 	if err != OK:
@@ -184,6 +185,7 @@ func enter_lobby() -> void:
 		lobby_updated.emit()
 		return
 	rpc_load_lobby.rpc()
+	_enter_lobby_scene()
 
 
 func boot_dedicated_server_panel() -> void:
@@ -223,10 +225,11 @@ func return_to_lobby() -> void:
 		for player in _lobby_players.values():
 			player.ready = false
 		_broadcast_lobby()
-	if is_dedicated_server:
-		lobby_updated.emit()
-		return
-	rpc_load_lobby.rpc()
+		if is_dedicated_server:
+			lobby_updated.emit()
+			return
+		rpc_load_lobby.rpc()
+	_enter_lobby_scene()
 
 
 func begin_online_match() -> void:
@@ -235,9 +238,8 @@ func begin_online_match() -> void:
 	if not _can_start_match():
 		return
 	match_player_count = _lobby_players.size()
-	_match_loading = true
-	in_lobby = false
 	rpc_begin_match.rpc(match_player_count)
+	_apply_begin_match(match_player_count)
 
 
 func register_match_network(net: Node) -> void:
@@ -343,24 +345,27 @@ func rpc_kick_with_message(message: String) -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("authority", "call_remote", "reliable")
 func rpc_load_lobby() -> void:
+	_enter_lobby_scene()
+
+
+func _enter_lobby_scene() -> void:
 	if get_tree().current_scene == null:
 		return
-	if is_dedicated_server:
-		if get_tree().current_scene.scene_file_path == DEDICATED_SERVER_SCENE:
-			in_lobby = true
-			_unload_dedicated_match()
-			lobby_updated.emit()
+	if get_tree().current_scene.scene_file_path == LOBBY_SCENE:
+		in_lobby = true
 		return
-	var target_scene := LOBBY_SCENE
-	if get_tree().current_scene.scene_file_path == target_scene:
-		return
-	get_tree().change_scene_to_file(target_scene)
+	in_lobby = true
+	get_tree().change_scene_to_file(LOBBY_SCENE)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("authority", "call_remote", "reliable")
 func rpc_begin_match(player_count: int) -> void:
+	_apply_begin_match(player_count)
+
+
+func _apply_begin_match(player_count: int) -> void:
 	match_player_count = maxi(MIN_PLAYERS_TO_START, player_count)
 	_match_loading = true
 	in_lobby = false

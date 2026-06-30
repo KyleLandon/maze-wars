@@ -11,6 +11,7 @@ var match_start_time: float = 0.0
 var debug_mode: bool = true
 var master_volume: float = 1.0
 var player_name: String = "Player"
+var last_server_address: String = ""
 
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func load_settings() -> void:
 		return
 	master_volume = clampf(float(cfg.get_value("audio", "master_volume", 1.0)), 0.0, 1.0)
 	player_name = str(cfg.get_value("player", "name", _default_player_name()))
+	last_server_address = str(cfg.get_value("network", "last_server_address", ""))
 	apply_audio_settings()
 
 
@@ -32,7 +34,17 @@ func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("audio", "master_volume", master_volume)
 	cfg.set_value("player", "name", player_name)
+	cfg.set_value("network", "last_server_address", last_server_address)
 	cfg.save(SETTINGS_PATH)
+
+
+func get_last_server_address() -> String:
+	return last_server_address.strip_edges()
+
+
+func set_last_server_address(address: String) -> void:
+	last_server_address = address.strip_edges()
+	save_settings()
 
 
 func get_player_name() -> String:

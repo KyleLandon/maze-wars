@@ -19,11 +19,11 @@ func _ready() -> void:
 	UIStyles.apply_panel(panel, true)
 	$Dimmer.color = Color(0.02, 0.03, 0.06, 0.55)
 	UIStyles.style_label($Panel/Margin/VBox/TitleLabel, "title")
-	$Panel/Margin/VBox/TitleLabel.text = "LOBBY"
+	$Panel/Margin/VBox/TitleLabel.text = "MATCH QUEUE"
 	UIStyles.style_label(mode_label, "muted")
 	UIStyles.style_label(status_label, "muted")
 	UIStyles.style_label($Panel/Margin/VBox/NameRow/NameLabel, "muted")
-	UIStyles.style_button(ready_button, "secondary")
+	UIStyles.style_button(ready_button, "accent")
 	UIStyles.style_button(start_button, "accent")
 	UIStyles.style_button(leave_button, "ghost")
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -81,7 +81,7 @@ func _refresh_ui() -> void:
 			if int(entry.get("peer_id", 0)) == NetworkManager.get_local_peer_id():
 				_slot_status_labels[i].text += " · You"
 	var ready := NetworkManager.is_local_ready()
-	ready_button.text = "NOT READY" if ready else "READY UP"
+	ready_button.text = "LEAVE QUEUE" if ready else "JOIN QUEUE"
 	start_button.visible = NetworkManager.can_press_start()
 	start_button.disabled = not NetworkManager.can_start_match()
 	if NetworkManager.is_dedicated_server:
@@ -91,13 +91,14 @@ func _refresh_ui() -> void:
 		if NetworkManager.get_lobby_player_count() < NetworkManager.MIN_PLAYERS_TO_START:
 			start_button.text = "START MATCH (need %d+)" % NetworkManager.MIN_PLAYERS_TO_START
 		elif not NetworkManager.can_start_match():
-			start_button.text = "START MATCH (all must ready)"
+			start_button.text = "START MATCH (all must join queue)"
 		else:
 			start_button.text = "START MATCH"
 	else:
-		status_label.text = "Waiting for host to start..."
 		if NetworkManager.is_local_ready():
-			status_label.text = "You are ready. Waiting for host..."
+			status_label.text = "In queue — waiting for other players..."
+		else:
+			status_label.text = "Click JOIN QUEUE when you're ready to play."
 
 
 func _on_ready_pressed() -> void:
