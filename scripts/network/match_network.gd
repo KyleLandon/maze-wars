@@ -1,7 +1,7 @@
 class_name MatchNetwork
 extends Node
 
-## Host-authoritative multiplayer sync for 2–4 player FFA matches.
+## Host-authoritative multiplayer sync for dedicated-server 2–4 player FFA.
 
 const SYNC_INTERVAL := 0.08
 
@@ -83,17 +83,11 @@ func _rebuild_peer_lanes() -> void:
 	_lanes_by_peer.clear()
 	if _match == null:
 		return
-	var host_id := multiplayer.get_unique_id()
 	var peers: Array = multiplayer.get_peers()
 	peers.sort()
 	var peer_ids: Array = []
-	if NetworkManager.is_dedicated_server:
-		for peer in peers:
-			peer_ids.append(int(peer))
-	else:
-		peer_ids.append(host_id)
-		for peer in peers:
-			peer_ids.append(int(peer))
+	for peer in peers:
+		peer_ids.append(int(peer))
 	var human_lanes: Array = []
 	for lane in _match.human_lanes:
 		if lane is LaneController and lane.is_player:

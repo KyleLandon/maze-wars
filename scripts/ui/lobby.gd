@@ -1,13 +1,12 @@
 extends Control
 
-## Pre-match lobby — ready up, then host starts (or dedicated server auto-starts).
+## Pre-match queue — ready up; dedicated server auto-starts when all players are ready.
 
 @onready var panel: PanelContainer = $Panel
 @onready var status_label: Label = $Panel/Margin/VBox/StatusLabel
 @onready var mode_label: Label = $Panel/Margin/VBox/ModeLabel
 @onready var slots_row: HBoxContainer = $Panel/Margin/VBox/SlotsRow
 @onready var ready_button: Button = $Panel/Margin/VBox/ReadyButton
-@onready var start_button: Button = $Panel/Margin/VBox/StartButton
 @onready var leave_button: Button = $Panel/Margin/VBox/LeaveButton
 @onready var name_input: LineEdit = $Panel/Margin/VBox/NameRow/NameInput
 
@@ -24,10 +23,9 @@ func _ready() -> void:
 	UIStyles.style_label(status_label, "muted")
 	UIStyles.style_label($Panel/Margin/VBox/NameRow/NameLabel, "muted")
 	UIStyles.style_button(ready_button, "accent")
-	UIStyles.style_button(start_button, "accent")
 	UIStyles.style_button(leave_button, "ghost")
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mode_label.text = "FFA · %d–%d players · sends hit all enemy lanes" % [
+	mode_label.text = "FFA · %d–%d players · server starts when all are ready" % [
 		NetworkManager.MIN_PLAYERS_TO_START, NetworkManager.MAX_LOBBY_PLAYERS
 	]
 	name_input.text = GameConfig.get_player_name()
@@ -83,36 +81,17 @@ func _refresh_ui() -> void:
 			_slot_status_labels[i].text = "Ready" if entry.get("ready", false) else "Not ready"
 			if int(entry.get("peer_id", 0)) == NetworkManager.get_local_peer_id():
 				_slot_status_labels[i].text += " · You"
-	var ready := NetworkManager.is_local_ready()
-	ready_button.text = "LEAVE QUEUE" if ready else "JOIN QUEUE"
-	start_button.visible = NetworkManager.can_press_start()
-	start_button.disabled = not NetworkManager.can_start_match()
-	if NetworkManager.is_dedicated_server:
-		status_label.text = NetworkManager.lobby_status
-	elif NetworkManager.is_server():
-		status_label.text = NetworkManager.lobby_status
-		if NetworkManager.get_lobby_player_count() < NetworkManager.MIN_PLAYERS_TO_START:
-			start_button.text = "START MATCH (need %d+)" % NetworkManager.MIN_PLAYERS_TO_START
-		elif not NetworkManager.can_start_match():
-			start_button.text = "START MATCH (all must join queue)"
-		else:
-			start_button.text = "START MATCH"
+	ready_button.text = "LEAVE QUEUE" if NetworkManager.is_local_ready() else "JOIN QUEUE"
+	if NetworkManager.is_local_ready():
+		status_label.text = "In queue — waiting for other players..."
 	else:
-		if NetworkManager.is_local_ready():
-			status_label.text = "In queue — waiting for other players..."
-		else:
-			status_label.text = "Click JOIN QUEUE when you're ready to play."
+		status_label.text = "Click JOIN QUEUE when you're ready to play."
 
 
 func _on_ready_pressed() -> void:
 	GameConfig.set_player_name(name_input.text)
 	NetworkManager.set_local_ready(not NetworkManager.is_local_ready())
 	_refresh_ui()
-
-
-func _on_start_pressed() -> void:
-	GameConfig.set_player_name(name_input.text)
-	NetworkManager.request_start_match()
 
 
 func _on_leave_pressed() -> void:

@@ -1,13 +1,12 @@
 extends Control
 
-## Main menu — solo, host lobby, or join server queue.
+## Main menu — solo vs AI or join the dedicated server queue.
 
 @onready var panel: PanelContainer = $Panel
 @onready var status_label: Label = $Panel/Margin/VBox/StatusLabel
 @onready var server_hint_label: Label = $Panel/Margin/VBox/JoinSection/ServerHintLabel
 @onready var address_input: LineEdit = $Panel/Margin/VBox/JoinSection/AddressRow/AddressInput
 @onready var solo_button: Button = $Panel/Margin/VBox/SoloButton
-@onready var host_button: Button = $Panel/Margin/VBox/HostSection/HostButton
 @onready var join_button: Button = $Panel/Margin/VBox/JoinSection/JoinButton
 @onready var update_button: Button = $Panel/Margin/VBox/UpdateButton
 @onready var quit_button: Button = $Panel/Margin/VBox/QuitButton
@@ -20,7 +19,6 @@ func _ready() -> void:
 	$Panel/Margin/VBox/TitleLabel.text = "MAZE WARS"
 	UIStyles.style_label($Panel/Margin/VBox/SubtitleLabel, "muted")
 	$Panel/Margin/VBox/SubtitleLabel.text = "Tower defense lane wars"
-	UIStyles.style_label($Panel/Margin/VBox/HostSection/HostLabel, "muted")
 	UIStyles.style_label($Panel/Margin/VBox/JoinSection/JoinLabel, "muted")
 	UIStyles.style_label(server_hint_label, "muted")
 	UIStyles.style_label(status_label, "muted")
@@ -28,7 +26,6 @@ func _ready() -> void:
 	$Panel/Margin/VBox/VersionLabel.add_theme_font_size_override("font_size", 11)
 	UIStyles.style_label($Panel/Margin/VBox/JoinSection/AddressRow/AddressLabel, "muted")
 	UIStyles.style_button(solo_button, "accent")
-	UIStyles.style_button(host_button, "secondary")
 	UIStyles.style_button(join_button, "accent")
 	UIStyles.style_button(update_button, "gold")
 	UIStyles.style_button(quit_button, "ghost")
@@ -36,7 +33,7 @@ func _ready() -> void:
 	update_button.text = "UPDATE AVAILABLE"
 	GameConfig.load_settings()
 	_setup_join_section()
-	status_label.text = "Solo vs AI, or join a 2-4 player queue (v%s)" % GameVersion.version_label
+	status_label.text = "Solo vs AI, or join the server queue (v%s)" % GameVersion.version_label
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Panel/Margin/VBox/VersionLabel.text = "v%s" % GameVersion.version_label
 	NetworkManager.lobby_status_changed.connect(_on_lobby_status_changed)
@@ -55,32 +52,21 @@ func _setup_join_section() -> void:
 			"Internet: %s\nLAN (same Wi‑Fi): %s\nSame PC as server: 127.0.0.1"
 			% [default_addr, GameConfig.get_lan_server_address()]
 		)
-	if GameConfig.has_default_server():
 		var port := GameConfig.get_configured_server_port()
-		server_hint_label.text = "%s — internet %s:%d · same PC use 127.0.0.1" % [
+		server_hint_label.text = "%s — %s:%d · same PC use 127.0.0.1" % [
 			GameConfig.get_server_display_name(),
 			default_addr,
 			port,
 		]
 		address_input.placeholder_text = default_addr
-		join_button.text = "JOIN QUEUE"
 	else:
-		server_hint_label.text = "Enter the server IP from your host."
+		server_hint_label.text = "Enter the dedicated server IP."
 		address_input.placeholder_text = "e.g. 192.168.1.42"
-		join_button.text = "JOIN QUEUE"
+	join_button.text = "JOIN QUEUE"
 
 
 func _on_solo_pressed() -> void:
 	NetworkManager.start_solo()
-
-
-func _on_host_pressed() -> void:
-	_set_multiplayer_busy(true)
-	var err := NetworkManager.host_game()
-	if err != OK:
-		_set_multiplayer_busy(false)
-		return
-	NetworkManager.enter_lobby()
 
 
 func _on_join_pressed() -> void:
@@ -101,7 +87,6 @@ func _on_connected_to_server() -> void:
 
 
 func _set_multiplayer_busy(busy: bool) -> void:
-	host_button.disabled = busy
 	join_button.disabled = busy
 	solo_button.disabled = busy
 	address_input.editable = not busy

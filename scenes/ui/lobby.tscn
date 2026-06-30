@@ -87,14 +87,9 @@ placeholder_text = "Player name"
 layout_mode = 2
 text = "JOIN QUEUE"
 
-[node name="StartButton" type="Button" parent="Panel/Margin/VBox"]
-layout_mode = 2
-text = "START MATCH"
-
 [node name="LeaveButton" type="Button" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "LEAVE LOBBY"
+text = "LEAVE QUEUE"
 
 [connection signal="pressed" from="Panel/Margin/VBox/ReadyButton" to="." method="_on_ready_pressed"]
-[connection signal="pressed" from="Panel/Margin/VBox/StartButton" to="." method="_on_start_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/LeaveButton" to="." method="_on_leave_pressed"]

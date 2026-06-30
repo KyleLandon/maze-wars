@@ -156,12 +156,6 @@ func _refresh_lane_display_names() -> void:
 			lane.display_name = "Your Lane"
 
 
-func _lane_label_for_peer(peer_id: int) -> String:
-	if peer_id == NetworkManager.get_local_peer_id():
-		return "Your Lane"
-	return "Opponent"
-
-
 func _setup_wave_coordinator() -> void:
 	wave_coordinator = MatchWaveCoordinatorScript.new()
 	wave_coordinator.name = "WaveCoordinator"

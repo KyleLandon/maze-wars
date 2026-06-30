@@ -29,9 +29,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -240.0
-offset_top = -280.0
+offset_top = -240.0
 offset_right = 240.0
-offset_bottom = 280.0
+offset_bottom = 240.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -67,7 +67,7 @@ horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "Solo vs AI, or join a multiplayer queue"
+text = "Solo vs AI, or join the server queue"
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -75,26 +75,13 @@ autowrap_mode = 2
 layout_mode = 2
 text = "SOLO VS AI"
 
-[node name="HostSection" type="VBoxContainer" parent="Panel/Margin/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HostLabel" type="Label" parent="Panel/Margin/VBox/HostSection"]
-layout_mode = 2
-text = "HOST A GAME"
-horizontal_alignment = 1
-
-[node name="HostButton" type="Button" parent="Panel/Margin/VBox/HostSection"]
-layout_mode = 2
-text = "CREATE LOBBY"
-
 [node name="JoinSection" type="VBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="JoinLabel" type="Label" parent="Panel/Margin/VBox/JoinSection"]
 layout_mode = 2
-text = "JOIN A QUEUE"
+text = "JOIN SERVER"
 horizontal_alignment = 1
 
 [node name="ServerHintLabel" type="Label" parent="Panel/Margin/VBox/JoinSection"]
@@ -137,7 +124,6 @@ layout_mode = 2
 text = "QUIT"
 
 [connection signal="pressed" from="Panel/Margin/VBox/SoloButton" to="." method="_on_solo_pressed"]
-[connection signal="pressed" from="Panel/Margin/VBox/HostSection/HostButton" to="." method="_on_host_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/JoinSection/JoinButton" to="." method="_on_join_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/UpdateButton" to="." method="_on_update_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/QuitButton" to="." method="_on_quit_pressed"]

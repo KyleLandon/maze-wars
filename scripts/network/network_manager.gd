@@ -1,11 +1,10 @@
 extends Node
 
-## ENet host/join, lobby, and dedicated-server entry for 2–4 player FFA.
+## Dedicated-server multiplayer: ENet server + client join for 2–4 player FFA.
 
 signal peer_connected(peer_id: int)
 signal peer_disconnected(peer_id: int)
 signal connection_failed
-signal server_started
 signal connected_to_server
 signal lobby_status_changed(text: String)
 signal lobby_updated
@@ -24,10 +23,9 @@ const CLIENT_LOBBY_FALLBACK_SEC := 4.0
 const NET_PROTOCOL_VERSION := 3
 
 var multiplayer_mode: String = "solo"
-var is_host: bool = false
 var is_dedicated_server: bool = false
 var lobby_status: String = ""
-var host_address_hint: String = ""
+var server_address_hint: String = ""
 var in_lobby: bool = false
 var match_player_count: int = 2
 
@@ -75,13 +73,6 @@ func get_local_peer_id() -> int:
 	return multiplayer.get_unique_id()
 
 
-func get_lan_ip() -> String:
-	for addr in IP.get_local_addresses():
-		if addr.contains(".") and not addr.begins_with("127."):
-			return addr
-	return "127.0.0.1"
-
-
 func get_lobby_player_count() -> int:
 	return _lobby_players.size()
 
@@ -97,41 +88,24 @@ func get_lobby_slots() -> Array:
 	return slots
 
 
-func can_press_start() -> bool:
-	return is_server() and not is_dedicated_server and in_lobby
-
-
-func can_start_match() -> bool:
-	return _can_start_match()
-
-
 func is_local_ready() -> bool:
 	var player: LobbyPlayer = _lobby_players.get(get_local_peer_id())
 	return player != null and player.ready
 
 
-func host_game(port: int = DEFAULT_PORT) -> Error:
+func start_server(port: int = DEFAULT_PORT) -> Error:
 	disconnect_game()
 	_match_loading = false
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(port, MAX_CLIENTS)
 	if err != OK:
-		_set_status("Failed to host on port %d" % port)
+		_set_status("Failed to start server on port %d" % port)
 		return err
 	multiplayer.multiplayer_peer = peer
-	multiplayer_mode = "host"
-	is_host = true
-	host_address_hint = GameConfig.get_server_address_hint()
+	multiplayer_mode = "server"
+	server_address_hint = GameConfig.get_server_address_hint()
 	_try_upnp_port(port)
-	server_started.emit()
-	if is_dedicated_server:
-		_set_status("Dedicated server on %s:%d" % [host_address_hint, port])
-	else:
-		_set_status(
-			"Hosting lobby on %s:%d\nShare this IP — up to %d players." % [
-				host_address_hint, port, MAX_LOBBY_PLAYERS
-			]
-		)
+	_set_status("Dedicated server on %s:%d" % [server_address_hint, port])
 	return OK
 
 
@@ -172,7 +146,6 @@ func _connect_join_candidate() -> Error:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
 	multiplayer_mode = "solo"
-	is_host = false
 	in_lobby = false
 	_lobby_players.clear()
 	_client_lobby_timer = -1.0
@@ -186,7 +159,6 @@ func _connect_join_candidate() -> Error:
 		return err
 	multiplayer.multiplayer_peer = peer
 	multiplayer_mode = "client"
-	is_host = false
 	_connect_started_at = Time.get_ticks_msec() / 1000.0
 	if _join_candidates.size() > 1:
 		_set_status(
@@ -222,8 +194,7 @@ func disconnect_game() -> void:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
 	multiplayer_mode = "solo"
-	is_host = false
-	host_address_hint = ""
+	server_address_hint = ""
 	_set_status("")
 	lobby_updated.emit()
 
@@ -233,43 +204,29 @@ func start_solo() -> void:
 	get_tree().change_scene_to_file(MATCH_SCENE)
 
 
-func enter_lobby() -> void:
-	if not is_online() or not multiplayer.is_server():
+func enter_dedicated_lobby() -> void:
+	if not is_dedicated_server or not is_server():
 		return
 	in_lobby = true
-	_ensure_host_in_lobby()
 	_broadcast_lobby()
-	if is_dedicated_server:
-		lobby_updated.emit()
-		return
-	rpc_load_lobby.rpc()
-	_enter_lobby_scene()
+	lobby_updated.emit()
 
 
 func boot_dedicated_server_panel() -> void:
 	if multiplayer_mode != "solo":
 		return
 	is_dedicated_server = true
-	var err := host_game()
+	var err := start_server()
 	if err != OK:
 		push_error("Dedicated server failed to bind port %d" % DEFAULT_PORT)
 		return
-	enter_lobby()
+	enter_dedicated_lobby()
 
 
 func set_local_ready(ready: bool) -> void:
-	if not in_lobby:
+	if not in_lobby or is_server():
 		return
-	if is_server():
-		_set_player_ready(get_local_peer_id(), ready)
-	else:
-		rpc_set_ready.rpc_id(1, ready)
-
-
-func request_start_match() -> void:
-	if not can_press_start() or not _can_start_match():
-		return
-	begin_online_match()
+	rpc_set_ready.rpc_id(1, ready)
 
 
 func return_to_lobby() -> void:
@@ -278,15 +235,14 @@ func return_to_lobby() -> void:
 		return
 	_match_loading = false
 	in_lobby = true
-	_unload_dedicated_match()
-	if is_server():
+	if is_dedicated_server and is_server():
+		_unload_dedicated_match()
 		for player in _lobby_players.values():
 			player.ready = false
 		_broadcast_lobby()
-		if is_dedicated_server:
-			lobby_updated.emit()
-			return
 		rpc_load_lobby.rpc()
+		lobby_updated.emit()
+		return
 	_enter_lobby_scene()
 
 
@@ -373,13 +329,13 @@ func report_client_build(protocol: int, build_label: String, player_name: String
 	if not _versions_compatible(build_label, GameVersion.version_label):
 		_reject_peer(
 			peer_id,
-			"Version mismatch.\nHost: v%s\nGuest: v%s\nUse the launcher on both — do not mix editor F5 with an old export." % [
+			"Version mismatch.\nServer: v%s\nClient: v%s\nUse the launcher on both — do not mix editor F5 with an old export." % [
 				GameVersion.version_label, build_label
 			]
 		)
 		return
 	_add_lobby_player(peer_id, _sanitize_player_name(player_name), build_label)
-	_set_status("Guest %s joined lobby (%d/%d)" % [
+	_set_status("Player %s joined queue (%d/%d)" % [
 		_sanitize_player_name(player_name), _lobby_players.size(), MAX_LOBBY_PLAYERS
 	])
 	rpc_load_lobby.rpc_id(peer_id)
@@ -437,9 +393,8 @@ func _apply_begin_match(player_count: int) -> void:
 	match_player_count = maxi(MIN_PLAYERS_TO_START, player_count)
 	_match_loading = true
 	in_lobby = false
-	if is_dedicated_server:
-		if multiplayer.is_server():
-			_start_dedicated_match_sim()
+	if is_dedicated_server and multiplayer.is_server():
+		_start_dedicated_match_sim()
 		return
 	if get_tree().current_scene == null:
 		return
@@ -501,10 +456,7 @@ func _fail_connection(message: String) -> void:
 
 func _on_peer_connected(peer_id: int) -> void:
 	peer_connected.emit(peer_id)
-	if is_dedicated_server:
-		_set_status("Player %d connected — checking version..." % peer_id)
-	else:
-		_set_status("Guest connected (%d). Checking version..." % peer_id)
+	_set_status("Player %d connected — checking version..." % peer_id)
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
@@ -556,17 +508,9 @@ func _on_connection_failed() -> void:
 
 func _on_server_disconnected() -> void:
 	disconnect_game()
-	_set_status("Disconnected from host")
+	_set_status("Disconnected from server")
 	if get_tree().current_scene != null:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
-
-
-func _ensure_host_in_lobby() -> void:
-	if is_dedicated_server:
-		return
-	var host_id := get_local_peer_id()
-	if not _lobby_players.has(host_id):
-		_add_lobby_player(host_id, _local_player_name(), GameVersion.version_label)
 
 
 func _add_lobby_player(peer_id: int, player_name: String, version_label: String) -> void:

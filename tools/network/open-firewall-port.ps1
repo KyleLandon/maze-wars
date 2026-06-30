@@ -1,4 +1,4 @@
-# Allow inbound UDP 7777 for Maze Wars dedicated server / host.
+# Allow inbound UDP 7777 for the Maze Wars dedicated server.
 # Run as Administrator (Run-Dedicated-Server.bat requests elevation once).
 
 param([switch]$Quiet)
