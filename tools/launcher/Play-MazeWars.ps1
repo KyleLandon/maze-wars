@@ -14,9 +14,12 @@ $ConfigPath = Join-Path $ScriptDir "config.json"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "MazeWars"
 $InstalledLauncher = Join-Path $InstallRoot "launcher\Play-MazeWars.ps1"
 $ManifestFileName = "install.manifest.json"
+# Launcher-owned metadata — never delete during stale-file cleanup.
 $ProtectedRelativePaths = @(
     $ManifestFileName,
-    "UpdateAndRestart.bat"
+    "UpdateAndRestart.bat",
+    "update.stamp",
+    "version.txt"
 )
 
 # After the first install, always run the launcher bundled with the game (stays current).
@@ -104,9 +107,14 @@ function Get-RemoteBuildStamp($Release, $Asset) {
 }
 
 function Save-LocalBuildStamp([string]$Stamp) {
+    if ([string]::IsNullOrWhiteSpace($Stamp)) {
+        return
+    }
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
     $stampFile = Join-Path $InstallRoot "update.stamp"
     Set-Content -Path $stampFile -Value $Stamp -NoNewline
+    $versionFile = Join-Path $InstallRoot "version.txt"
+    Set-Content -Path $versionFile -Value $Stamp -NoNewline
 }
 
 function Get-InstallManifestPath {
@@ -348,6 +356,12 @@ function Download-And-Install($Asset, [string]$RemoteStamp) {
     if (-not [string]::IsNullOrWhiteSpace($RemoteStamp)) {
         Save-LocalBuildStamp $RemoteStamp
     }
+    else {
+        $installedVersionFile = Join-Path $InstallRoot "version.txt"
+        if (Test-Path $installedVersionFile) {
+            Save-LocalBuildStamp (Get-Content $installedVersionFile -Raw).Trim()
+        }
+    }
 
     $installedStamp = Get-LocalBuildStamp
     Write-Status ("Updated build {0} — copied {1}, skipped {2}, removed {3}" -f `
@@ -383,6 +397,9 @@ try {
     }
     else {
         Write-Status "Already up to date ($localStamp)."
+        if (-not [string]::IsNullOrWhiteSpace($remoteStamp)) {
+            Save-LocalBuildStamp $remoteStamp
+        }
         Write-UpdaterShortcut
     }
 
