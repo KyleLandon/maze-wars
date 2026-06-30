@@ -1,5 +1,6 @@
 {
   "default_server_address": "169.224.198.190",
+  "local_join_address": "127.0.0.1",
   "server_port": 7777,
   "server_display_name": "Maze Wars Server"
 }

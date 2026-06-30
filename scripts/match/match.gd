@@ -32,6 +32,10 @@ const SELECT_DRAG_THRESHOLD := 8.0
 func _ready() -> void:
 	LaneCoords.load_from_config()
 	_spawn_lanes()
+	if NetworkManager.is_online() and not NetworkManager.is_dedicated_server and local_lane == null:
+		push_error("No lane for peer %d — lobby peer map missing." % NetworkManager.get_local_peer_id())
+		NetworkManager.leave_lobby()
+		return
 	_setup_wave_coordinator()
 	network.set_multiplayer_authority(1)
 	var all_lanes: Array = human_lanes.duplicate()
@@ -62,16 +66,18 @@ func _spawn_lanes() -> void:
 
 	if NetworkManager.is_online():
 		var player_count := NetworkManager.match_player_count
+		var peer_ids := _collect_lobby_peer_ids()
 		for i in range(player_count):
 			var lane_id := "player" if i == 0 else "player_%d" % (i + 1)
 			var offset := _online_lane_offset(i, stride)
+			var peer_id := int(peer_ids[i]) if i < peer_ids.size() else 0
 			var lane: LaneController = _create_lane(
 				"PlayerLane%d" % (i + 1),
 				offset,
 				lane_id,
 				_lane_label_for_index(i),
 				true,
-				i + 1
+				peer_id
 			)
 			human_lanes.append(lane)
 		for lane in human_lanes:
@@ -100,8 +106,20 @@ func _spawn_lanes() -> void:
 			ai_lanes.append(ai_lane)
 			slot += 1
 
-	if camera.has_method("set_lane_center"):
+	if local_lane != null and camera.has_method("set_lane_center"):
 		camera.set_lane_center(local_lane.global_position)
+
+
+func _collect_lobby_peer_ids() -> Array:
+	var peer_ids: Array = []
+	for slot in NetworkManager.get_lobby_slots():
+		if slot.is_empty():
+			continue
+		var peer_id := int(slot.get("peer_id", 0))
+		if peer_id > 0:
+			peer_ids.append(peer_id)
+	peer_ids.sort()
+	return peer_ids
 
 
 func _create_lane(
@@ -154,7 +172,7 @@ func _setup_wave_coordinator() -> void:
 
 
 func _spawn_builder() -> void:
-	if NetworkManager.is_dedicated_server:
+	if NetworkManager.is_dedicated_server or local_lane == null:
 		return
 	var builder_scene: PackedScene = preload("res://scenes/entities/builder.tscn")
 	builder = builder_scene.instantiate()
@@ -164,6 +182,8 @@ func _spawn_builder() -> void:
 
 
 func _setup_send_manager() -> void:
+	if local_lane == null:
+		return
 	var enemy_lanes: Array = ai_lanes.duplicate()
 	for lane in human_lanes:
 		if lane != local_lane:
@@ -197,6 +217,8 @@ func get_redistribution_targets(from_lane: LaneController) -> Array:
 
 
 func _connect_signals() -> void:
+	if local_lane == null:
+		return
 	var economy := local_lane.economy
 	var tower_manager := local_lane.tower_manager
 	var creep_spawner := local_lane.creep_spawner

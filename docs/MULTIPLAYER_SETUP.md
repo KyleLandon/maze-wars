@@ -2,6 +2,20 @@
 
 Online **FFA lobby** aligned with PRD MVP 3: up to **4 players**, host-authoritative simulation, sends hit **all enemy lanes**.
 
+## Same-PC test (dedicated server + 2 clients)
+
+You need **3 windows**:
+
+1. `Run-Dedicated-Server.bat` — leave it open (dashboard should say **LOBBY**).
+2. Launch client 1 → address **`127.0.0.1`** → **JOIN QUEUE** → **JOIN QUEUE** (ready).
+3. Launch client 2 → **`127.0.0.1`** → **JOIN QUEUE** → **JOIN QUEUE**.
+
+Do **not** use the public IP on the same PC — most routers block that (no hairpin NAT). v0.2.7+ auto-retries `127.0.0.1` if the public IP fails.
+
+Server dashboard should list both players. Match auto-starts when both are in queue.
+
+**Without a dedicated server:** client 1 **HOST LOBBY**, client 2 joins **`127.0.0.1`**.
+
 ## Quick test (same Wi‑Fi / LAN)
 
 ### Option A — Peer host (you + friends)
@@ -13,14 +27,14 @@ Online **FFA lobby** aligned with PRD MVP 3: up to **4 players**, host-authorita
 5. Everyone clicks **READY UP**.
 6. **Host** clicks **START MATCH** when all players are ready (minimum **2**).
 
-### Option B — Dedicated server (static IP)
+### Option B — Dedicated server (internet)
 
-The default server address is in **`config/network.json`** (currently `192.168.4.24`).
+The default server address is in **`config/network.json`** (public IP for remote players).
 
-1. Set your server PC to that **fixed LAN IP** — see `tools/network/STATIC-SERVER-IP.md`.
-2. Run `tools/network/Run-Dedicated-Server.bat`.
-3. Dashboard shows **Players join: 192.168.4.24:7777**.
-4. Clients launch the game → **JOIN QUEUE** (address is pre-filled).
+1. On the **server PC**, run `tools/network/Run-Dedicated-Server.bat` (opens Windows Firewall for UDP **7777** on first launch).
+2. Port-forward **UDP 7777** on your router to the server PC’s LAN IP — see `tools/network/STATIC-SERVER-IP.md`.
+3. Dashboard shows **Internet join**, **LAN**, and **127.0.0.1** addresses.
+4. Clients launch the game → **JOIN QUEUE** (public IP is pre-filled).
 
 Change `default_server_address` in `config/network.json`, then release a new build so all clients pick it up.
 
@@ -52,7 +66,7 @@ Alternatives: **Tailscale / ZeroTier / Hamachi** (virtual LAN).
 
 | Problem | Try |
 |--------|-----|
-| Stuck on Connecting | Correct host IP, same network, firewall allows UDP 7777 |
+| Stuck on Connecting | Server running? **Windows Firewall** allows UDP 7777? Router port-forward? Same Wi‑Fi → use **LAN IP** not public IP |
 | RPC / checksum errors | **Same build on all PCs** — launcher on everyone, don’t mix F5 with export |
 | Guest can’t place towers | Same version; update to latest release |
 | Match won’t start | All players must **Ready**; need at least 2 players |

@@ -51,8 +51,13 @@ func _setup_join_section() -> void:
 	var join_addr := GameConfig.get_join_server_address()
 	address_input.text = join_addr
 	if GameConfig.has_default_server():
+		server_hint_label.tooltip_text = (
+			"Internet: %s\nLAN (same Wi‑Fi): %s\nSame PC as server: 127.0.0.1"
+			% [default_addr, GameConfig.get_lan_server_address()]
+		)
+	if GameConfig.has_default_server():
 		var port := GameConfig.get_configured_server_port()
-		server_hint_label.text = "%s — %s:%d" % [
+		server_hint_label.text = "%s — internet %s:%d · same PC use 127.0.0.1" % [
 			GameConfig.get_server_display_name(),
 			default_addr,
 			port,

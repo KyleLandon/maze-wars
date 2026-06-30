@@ -9,5 +9,7 @@ if not exist "%EXE%" (
   pause
   exit /b 1
 )
+echo Opening Windows Firewall for UDP 7777 (admin prompt once)...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"\"%~dp0open-firewall-port.ps1\"\" -Quiet'"
 echo Starting Maze Wars dedicated server dashboard on UDP 7777...
 "%EXE%" --dedicated-server

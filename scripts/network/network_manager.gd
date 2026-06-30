@@ -18,7 +18,7 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 const LOBBY_SCENE := "res://scenes/ui/lobby.tscn"
 const DEDICATED_SERVER_SCENE := "res://scenes/server/dedicated_server.tscn"
 const MAIN_MENU_SCENE := "res://scenes/ui/main_menu.tscn"
-const CONNECT_TIMEOUT_SEC := 20.0
+const CONNECT_TIMEOUT_SEC := 8.0
 const CLIENT_LOBBY_FALLBACK_SEC := 4.0
 ## Bump when multiplayer RPC signatures change (not every app version).
 const NET_PROTOCOL_VERSION := 3
@@ -36,6 +36,9 @@ var _client_lobby_timer: float = -1.0
 var _match_loading: bool = false
 var _match_network: Node = null
 var _lobby_players: Dictionary = {}
+var _join_candidates: PackedStringArray = PackedStringArray()
+var _join_candidate_index: int = 0
+var _join_port: int = DEFAULT_PORT
 
 
 func _ready() -> void:
@@ -133,33 +136,84 @@ func host_game(port: int = DEFAULT_PORT) -> Error:
 
 
 func join_game(address: String, port: int = DEFAULT_PORT) -> Error:
-	disconnect_game()
 	_match_loading = false
+	_join_candidates = _build_join_candidates(address)
+	_join_candidate_index = 0
+	_join_port = port
+	if _join_port == DEFAULT_PORT and GameConfig.get_configured_server_port() != DEFAULT_PORT:
+		_join_port = GameConfig.get_configured_server_port()
+	if _join_candidates.is_empty():
+		_set_status("Enter the server IP address first.")
+		return ERR_INVALID_PARAMETER
+	return _connect_join_candidate()
+
+
+func _build_join_candidates(address: String) -> PackedStringArray:
+	var candidates: PackedStringArray = PackedStringArray()
 	var trimmed := address.strip_edges()
 	if trimmed.is_empty():
 		trimmed = GameConfig.get_default_server_address()
 	if trimmed.is_empty():
-		_set_status("Enter the server IP address first.")
-		return ERR_INVALID_PARAMETER
-	if port == DEFAULT_PORT and GameConfig.get_configured_server_port() != DEFAULT_PORT:
-		port = GameConfig.get_configured_server_port()
+		return candidates
+	candidates.append(trimmed)
+	# Public IP often fails on the same PC (no hairpin NAT) — try loopback + LAN next.
+	if trimmed == GameConfig.get_default_server_address():
+		var loopback := GameConfig.get_local_join_address()
+		if not loopback.is_empty() and loopback != trimmed and not candidates.has(loopback):
+			candidates.append(loopback)
+		var lan := GameConfig.get_lan_server_address()
+		if not lan.is_empty() and lan != trimmed and lan != loopback and not candidates.has(lan):
+			candidates.append(lan)
+	return candidates
+
+
+func _connect_join_candidate() -> Error:
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	multiplayer_mode = "solo"
+	is_host = false
+	in_lobby = false
+	_lobby_players.clear()
+	_client_lobby_timer = -1.0
+
+	var trimmed := _join_candidates[_join_candidate_index]
 	GameConfig.set_last_server_address(trimmed)
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(trimmed, port)
+	var err := peer.create_client(trimmed, _join_port)
 	if err != OK:
-		_set_status("Failed to connect to %s:%d" % [trimmed, port])
+		_set_status("Failed to connect to %s:%d" % [trimmed, _join_port])
 		return err
 	multiplayer.multiplayer_peer = peer
 	multiplayer_mode = "client"
 	is_host = false
 	_connect_started_at = Time.get_ticks_msec() / 1000.0
-	_set_status("Connecting to %s:%d ..." % [trimmed, port])
+	if _join_candidates.size() > 1:
+		_set_status(
+			"Connecting to %s:%d ... (try %d of %d)" % [
+				trimmed, _join_port, _join_candidate_index + 1, _join_candidates.size()
+			]
+		)
+	else:
+		_set_status("Connecting to %s:%d ..." % [trimmed, _join_port])
 	return OK
+
+
+func _try_next_join_candidate() -> bool:
+	if _join_candidates.is_empty():
+		return false
+	_join_candidate_index += 1
+	if _join_candidate_index >= _join_candidates.size():
+		return false
+	_connect_join_candidate()
+	return true
 
 
 func disconnect_game() -> void:
 	_connect_started_at = -1.0
 	_client_lobby_timer = -1.0
+	_join_candidates.clear()
+	_join_candidate_index = 0
 	_match_loading = false
 	_match_network = null
 	in_lobby = false
@@ -421,18 +475,25 @@ func _poll_client_connection(_delta: float) -> void:
 		_connect_started_at = -1.0
 		return
 	if status == MultiplayerPeer.CONNECTION_DISCONNECTED:
+		if _try_next_join_candidate():
+			return
 		_fail_connection("Disconnected before the lobby could load.")
 		return
 	var elapsed := Time.get_ticks_msec() / 1000.0 - _connect_started_at
 	if elapsed >= CONNECT_TIMEOUT_SEC:
-		_fail_connection(
-			"Connection timed out.\nCheck host IP, same Wi‑Fi, and host firewall (UDP %d)." % DEFAULT_PORT
-		)
+		if _try_next_join_candidate():
+			return
+		var hint := "Check server is running, router port-forward (UDP %d), and Windows Firewall on the server PC." % _join_port
+		if GameConfig.has_default_server():
+			hint += "\nSame PC as server? Use 127.0.0.1. Same Wi‑Fi? Try LAN IP %s." % GameConfig.get_lan_server_address()
+		_fail_connection("Connection timed out.\n%s" % hint)
 
 
 func _fail_connection(message: String) -> void:
 	_connect_started_at = -1.0
 	_client_lobby_timer = -1.0
+	_join_candidates.clear()
+	_join_candidate_index = 0
 	disconnect_game()
 	_set_status(message)
 	connection_failed.emit()
@@ -455,13 +516,21 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
+	_join_candidates.clear()
+	_join_candidate_index = 0
 	connected_to_server.emit()
 	_connect_started_at = -1.0
+	_set_status("Connected. Joining lobby...")
+	_client_lobby_timer = CLIENT_LOBBY_FALLBACK_SEC
+	call_deferred("_send_client_hello")
+
+
+func _send_client_hello() -> void:
+	if multiplayer_mode != "client" or multiplayer.multiplayer_peer == null:
+		return
 	report_client_build.rpc_id(
 		1, NET_PROTOCOL_VERSION, GameVersion.version_label, _local_player_name()
 	)
-	_set_status("Connected. Joining lobby...")
-	_client_lobby_timer = CLIENT_LOBBY_FALLBACK_SEC
 
 
 func _client_lobby_fallback() -> void:
@@ -472,11 +541,16 @@ func _client_lobby_fallback() -> void:
 	if get_tree().current_scene.scene_file_path == LOBBY_SCENE:
 		in_lobby = true
 		return
+	if _lobby_players.is_empty():
+		_set_status("Connected but lobby did not load. Is the dedicated server running? Try 127.0.0.1.")
+		return
 	in_lobby = true
-	get_tree().change_scene_to_file(LOBBY_SCENE)
+	_change_scene_deferred(LOBBY_SCENE)
 
 
 func _on_connection_failed() -> void:
+	if _try_next_join_candidate():
+		return
 	_fail_connection("Connection failed. Check IP and firewall.")
 
 
@@ -537,6 +611,7 @@ func _broadcast_lobby() -> void:
 	for player in _lobby_players.values():
 		payload.append(player.to_dict())
 	rpc_sync_lobby.rpc(JSON.stringify(payload))
+	lobby_updated.emit()
 
 
 func _apply_lobby_json(lobby_json: String) -> void:

@@ -74,6 +74,7 @@ func unload_match_simulation() -> void:
 func _on_status_changed(text: String) -> void:
 	if not text.is_empty():
 		status_label.text = text
+	_refresh_ui()
 
 
 func _on_match_ended(_victory: bool, _stats: Dictionary) -> void:
@@ -97,11 +98,18 @@ func _refresh_ui() -> void:
 	if join_addr.is_empty():
 		join_addr = "starting..."
 	var port := GameConfig.get_configured_server_port()
-	address_label.text = "Players join: %s:%d  ·  Uptime: %s" % [
-		join_addr,
-		port,
-		_format_duration(Time.get_ticks_msec() / 1000.0 - _started_at),
-	]
+	var lan_addr := GameConfig.get_lan_server_address()
+	address_label.text = (
+		"Internet join: %s:%d  ·  LAN: %s:%d  ·  Same PC: 127.0.0.1:%d  ·  Uptime: %s"
+		% [
+			join_addr,
+			port,
+			lan_addr,
+			port,
+			port,
+			_format_duration(Time.get_ticks_msec() / 1000.0 - _started_at),
+		]
+	)
 	if _phase == "match":
 		phase_label.text = "IN MATCH"
 		_refresh_match_stats()

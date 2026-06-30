@@ -56,11 +56,24 @@ func has_default_server() -> bool:
 	return not get_default_server_address().is_empty()
 
 
+func get_local_join_address() -> String:
+	return str(network.get("local_join_address", "127.0.0.1")).strip_edges()
+
+
 func get_join_server_address() -> String:
+	if has_default_server():
+		var last := get_last_server_address()
+		if not last.is_empty():
+			return last
+		return get_default_server_address()
 	var last := get_last_server_address()
 	if not last.is_empty():
 		return last
-	return get_default_server_address()
+	return ""
+
+
+func get_lan_server_address() -> String:
+	return _detect_lan_ip()
 
 
 func get_server_address_hint() -> String:

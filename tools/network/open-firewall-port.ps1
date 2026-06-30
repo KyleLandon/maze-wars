@@ -1,8 +1,10 @@
-# Run once on the HOST pc as Administrator to allow guests to join.
-# Right-click -> Run with PowerShell (Admin)
+# Allow inbound UDP 7777 for Maze Wars dedicated server / host.
+# Run as Administrator (Run-Dedicated-Server.bat requests elevation once).
+
+param([switch]$Quiet)
 
 $ErrorActionPreference = "Stop"
-$ruleName = "Maze Wars LAN UDP 7777"
+$ruleName = "Maze Wars Server UDP 7777"
 
 $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 if ($existing) {
@@ -14,15 +16,18 @@ if ($existing) {
         -Action Allow `
         -Protocol UDP `
         -LocalPort 7777 `
-        -Profile Any
+        -Profile Any | Out-Null
     Write-Host "Added firewall rule: $ruleName"
 }
 
-Write-Host ""
-Write-Host "Host IP addresses on this PC:"
-Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" } | ForEach-Object {
-    Write-Host "  $($_.IPAddress)"
+if (-not $Quiet) {
+    Write-Host ""
+    Write-Host "Host IP addresses on this PC:"
+    Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" } | ForEach-Object {
+        Write-Host "  $($_.IPAddress)"
+    }
+    Write-Host ""
+    Write-Host "LAN guests: use a 192.168.x.x address above."
+    Write-Host "Internet guests: use your public IP (port-forward UDP 7777 on the router)."
+    Read-Host "Press Enter to close"
 }
-Write-Host ""
-Write-Host "Give your guest one of the 192.168.x.x addresses above."
-Read-Host "Press Enter to close"

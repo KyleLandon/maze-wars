@@ -35,6 +35,7 @@ func _ready() -> void:
 	call_deferred("_refresh_ui")
 	NetworkManager.lobby_status_changed.connect(_on_lobby_status_changed)
 	NetworkManager.lobby_updated.connect(_refresh_ui)
+	NetworkManager.peer_connected.connect(func(_id): _refresh_ui())
 	NetworkManager.peer_disconnected.connect(func(_id): _refresh_ui())
 
 
@@ -69,6 +70,8 @@ func _build_slot_widgets() -> void:
 
 
 func _refresh_ui() -> void:
+	if _slot_labels.is_empty():
+		_build_slot_widgets()
 	var slots: Array = NetworkManager.get_lobby_slots()
 	for i in range(_slot_labels.size()):
 		var entry: Dictionary = slots[i] if i < slots.size() else {}
