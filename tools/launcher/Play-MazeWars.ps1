@@ -1,4 +1,4 @@
-# Maze Wars launcher — download latest GitHub release and run the game.
+# Maze Wars launcher - download latest GitHub release and run the game.
 # Incremental sync: only copies changed files and removes files dropped from the release.
 
 param(
@@ -14,7 +14,7 @@ $ConfigPath = Join-Path $ScriptDir "config.json"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "MazeWars"
 $InstalledLauncher = Join-Path $InstallRoot "launcher\Play-MazeWars.ps1"
 $ManifestFileName = "install.manifest.json"
-# Launcher-owned metadata — never delete during stale-file cleanup.
+# Launcher-owned metadata - never delete during stale-file cleanup.
 $ProtectedRelativePaths = @(
     $ManifestFileName,
     "UpdateAndRestart.bat",
@@ -338,7 +338,7 @@ function Download-And-Install($Asset, [string]$RemoteStamp) {
     }
 
     if ($ForceFullReinstall) {
-        Write-Status "Force reinstall — clearing old install files..."
+        Write-Status "Force reinstall - clearing old install files..."
         Get-ChildItem $InstallRoot -Force -ErrorAction SilentlyContinue | ForEach-Object {
             if ($_.Name -in @($ManifestFileName, "UpdateAndRestart.bat")) {
                 return
@@ -365,9 +365,8 @@ function Download-And-Install($Asset, [string]$RemoteStamp) {
     }
 
     $installedStamp = Get-LocalBuildStamp
-    Write-Status ("Updated build {0} — copied {1}, skipped {2}, removed {3}" -f `
-        $(if ($installedStamp) { $installedStamp } else { $RemoteStamp }), `
-        $stats.copied, $stats.skipped, $stats.removed)
+    $buildLabel = if ($installedStamp) { $installedStamp } else { $RemoteStamp }
+    Write-Status "Updated build $buildLabel - copied $($stats.copied), skipped $($stats.skipped), removed $($stats.removed)"
     Write-UpdaterShortcut
 }
 
