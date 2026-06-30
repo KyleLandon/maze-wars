@@ -1,5 +1,5 @@
 {
-  "default_server_address": "192.168.4.24",
+  "default_server_address": "169.224.198.190",
   "server_port": 7777,
   "server_display_name": "Maze Wars Server"
 }
