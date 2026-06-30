@@ -76,7 +76,7 @@ function Get-RemoteBuildStamp($Release, $Asset) {
     if ($body -match 'Version:\s*(\S+)') {
         $version = $matches[1]
     }
-    if ($body -match 'Auto-built from ``([a-f0-9]+)``') {
+    if ($body -match 'Auto-built from\s+`?([a-f0-9]{7,40})') {
         $sha = $matches[1].Substring(0, [Math]::Min(7, $matches[1].Length))
     }
     if ($version -and $sha) {
@@ -102,7 +102,7 @@ function Get-LatestRelease {
         return Invoke-RestMethod -Uri $apiLatest -Headers $headers
     }
     catch {
-        Write-Status "No /latest release (often pre-release) — checking all releases..."
+        Write-Status "No /latest release (often pre-release) - checking all releases..."
     }
 
     try {
