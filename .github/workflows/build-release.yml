@@ -41,6 +41,25 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
         id: version_meta
 
+      - name: Write file manifest
+        run: |
+          python3 << 'EOF'
+          import hashlib, json, os
+          root = "build"
+          manifest = {}
+          for dirpath, _, filenames in os.walk(root):
+              for name in filenames:
+                  if name == "manifest.json":
+                      continue
+                  full = os.path.join(dirpath, name)
+                  rel = os.path.relpath(full, root).replace("\\", "/")
+                  with open(full, "rb") as handle:
+                      digest = hashlib.sha256(handle.read()).hexdigest()
+                  manifest[rel] = digest
+          with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as handle:
+              json.dump(manifest, handle, indent=2, sort_keys=True)
+          EOF
+
       - name: Package zip
         run: |
           mkdir -p build/launcher
