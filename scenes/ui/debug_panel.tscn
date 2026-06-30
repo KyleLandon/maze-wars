@@ -1,0 +1,78 @@
+[gd_scene load_steps=2 format=3 uid="uid://debugpanel001"]
+
+[ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="1"]
+
+[node name="DebugPanel" type="PanelContainer"]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -236.0
+offset_top = 88.0
+offset_right = -10.0
+offset_bottom = 392.0
+grow_horizontal = 0
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+text = "DEVELOPER TOOLS"
+
+[node name="GoldSpin" type="SpinBox" parent="Margin/VBox"]
+layout_mode = 2
+min_value = 1.0
+max_value = 9999.0
+value = 100.0
+
+[node name="AddGoldBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Add Gold"
+
+[node name="IncomeSpin" type="SpinBox" parent="Margin/VBox"]
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+value = 5.0
+
+[node name="AddIncomeBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Add Income"
+
+[node name="ForceWaveBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Force Wave"
+
+[node name="ForceSendBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Force Send Release"
+
+[node name="SpawnGruntBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Spawn Grunt"
+
+[node name="SpawnBossBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Spawn Boss"
+
+[node name="ToggleBtn" type="Button" parent="Margin/VBox"]
+layout_mode = 2
+text = "Toggle Panel (F1)"
+
+[connection signal="pressed" from="Margin/VBox/AddGoldBtn" to="." method="_on_add_gold_pressed"]
+[connection signal="pressed" from="Margin/VBox/AddIncomeBtn" to="." method="_on_add_income_pressed"]
+[connection signal="pressed" from="Margin/VBox/ForceWaveBtn" to="." method="_on_force_wave_pressed"]
+[connection signal="pressed" from="Margin/VBox/ForceSendBtn" to="." method="_on_force_send_pressed"]
+[connection signal="pressed" from="Margin/VBox/SpawnGruntBtn" to="." method="_on_spawn_grunt_pressed"]
+[connection signal="pressed" from="Margin/VBox/SpawnBossBtn" to="." method="_on_spawn_boss_pressed"]
+[connection signal="pressed" from="Margin/VBox/ToggleBtn" to="." method="_on_toggle_pressed"]

@@ -1,0 +1,7 @@
+{
+  "github_owner": "YOUR_GITHUB_USERNAME",
+  "github_repo": "maze-wars",
+  "asset_name": "MazeWars-win64.zip",
+  "executable": "MazeWars.exe",
+  "install_dir_name": "MazeWars"
+}

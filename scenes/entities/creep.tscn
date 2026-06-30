@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://creep001"]
+
+[ext_resource type="Script" path="res://scripts/entities/creep.gd" id="1"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_creep"]
+radius = 0.35
+height = 0.9
+
+[node name="Creep" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("CapsuleShape3D_creep")

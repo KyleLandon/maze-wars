@@ -1,0 +1,59 @@
+name: Build Windows Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          set -e
+          GODOT_VERSION="4.7-stable"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q "Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
+          sudo mv "Godot_v${GODOT_VERSION}_linux.x86_64" /usr/local/bin/godot
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.stable"
+          unzip -q "Godot_v${GODOT_VERSION}_export_templates.tpz"
+          mv templates/* "$HOME/.local/share/godot/export_templates/4.7.stable/"
+
+      - name: Export Windows build
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-release "Windows Desktop" "build/MazeWars.exe"
+
+      - name: Write build metadata
+        run: |
+          VERSION=$(python -c "import json; print(json.load(open('version.json'))['version'])")
+          echo "${VERSION}+${GITHUB_SHA::7}" > build/version.txt
+          echo "Built from ${GITHUB_SHA}" > build/build-info.txt
+
+      - name: Package zip
+        run: |
+          cd build
+          zip -r ../MazeWars-win64.zip .
+
+      - name: Publish GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          allowUpdates: true
+          makeLatest: true
+          name: Latest Build
+          prerelease: true
+          body: |
+            Auto-built from `${{ github.sha }}` on `${{ github.ref_name }}`.
+            Your girlfriend's launcher checks this release and downloads `MazeWars-win64.zip`.
+          artifacts: MazeWars-win64.zip
+          token: ${{ secrets.GITHUB_TOKEN }}

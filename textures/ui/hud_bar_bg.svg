@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="52" viewBox="0 0 800 52">
+  <defs>
+    <linearGradient id="hud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d1020"/>
+      <stop offset="100%" stop-color="#0a0c18"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="52" rx="4" fill="url(#hud)"/>
+  <rect x="0.5" y="0.5" width="799" height="51" rx="3.5" fill="none" stroke="#00c9ff" stroke-opacity="0.18" stroke-width="1"/>
+  <!-- Top highlight line -->
+  <line x1="4" y1="1" x2="796" y2="1" stroke="#00c9ff" stroke-opacity="0.08" stroke-width="1"/>
+</svg>

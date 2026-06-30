@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Play in Editor",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "scene": "res://scenes/match/match.tscn"
+        },
+        {
+            "name": "Run Current Scene",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+  "starting_gold": 200,
+  "starting_income": 100,
+  "starting_core_health": 100,
+  "income_tick_seconds": 10.0,
+  "send_release_seconds": 30.0,
+  "send_immediate": true,
+  "wave_interval_seconds": 50.0,
+  "sell_refund_percent": 0.7,
+  "damage_variance_min": 0.85,
+  "damage_variance_max": 1.15,
+  "ai_lane_count": 2,
+  "ai_build_interval_seconds": 3.5,
+  "ai_min_gold_reserve": 35,
+  "ai_send_income_threshold": 45,
+  "lane_spacing": 6.0
+}

@@ -1,0 +1,115 @@
+{
+  "creeps": {
+    "grunt": {
+      "id": "grunt",
+      "display_name": "Grunt",
+      "health": 80,
+      "armor_type": "light",
+      "speed": 1.75,
+      "core_damage": 1,
+      "gold_bounty": 4,
+      "color": [0.55, 0.75, 0.35],
+      "scale": 0.8
+    },
+    "runner": {
+      "id": "runner",
+      "display_name": "Runner",
+      "health": 50,
+      "armor_type": "light",
+      "speed": 3.0,
+      "core_damage": 1,
+      "gold_bounty": 5,
+      "color": [0.9, 0.85, 0.2],
+      "scale": 0.65
+    },
+    "brute": {
+      "id": "brute",
+      "display_name": "Brute",
+      "health": 280,
+      "armor_type": "medium",
+      "speed": 1.25,
+      "core_damage": 3,
+      "gold_bounty": 12,
+      "color": [0.6, 0.35, 0.25],
+      "scale": 1.1
+    },
+    "swarm": {
+      "id": "swarm",
+      "display_name": "Swarmling",
+      "health": 35,
+      "armor_type": "light",
+      "speed": 2.0,
+      "core_damage": 1,
+      "gold_bounty": 2,
+      "color": [0.85, 0.4, 0.85],
+      "scale": 0.5
+    },
+    "armored": {
+      "id": "armored",
+      "display_name": "Armored",
+      "health": 200,
+      "armor_type": "heavy",
+      "speed": 1.4,
+      "core_damage": 2,
+      "gold_bounty": 10,
+      "color": [0.45, 0.5, 0.6],
+      "scale": 0.95
+    },
+    "boss": {
+      "id": "boss",
+      "display_name": "Boss",
+      "health": 1200,
+      "armor_type": "boss",
+      "speed": 1.0,
+      "core_damage": 10,
+      "gold_bounty": 50,
+      "color": [0.9, 0.15, 0.15],
+      "scale": 1.6
+    },
+    "rat": {
+      "id": "rat",
+      "display_name": "Rat",
+      "health": 40,
+      "armor_type": "light",
+      "speed": 2.25,
+      "core_damage": 1,
+      "gold_bounty": 2,
+      "color": [0.5, 0.45, 0.4],
+      "scale": 0.45
+    },
+    "wolf": {
+      "id": "wolf",
+      "display_name": "Wolf",
+      "health": 70,
+      "armor_type": "light",
+      "speed": 3.5,
+      "core_damage": 1,
+      "gold_bounty": 4,
+      "color": [0.55, 0.55, 0.6],
+      "scale": 0.7
+    },
+    "siege_beast": {
+      "id": "siege_beast",
+      "display_name": "Siege Beast",
+      "health": 800,
+      "armor_type": "fortified",
+      "speed": 0.9,
+      "core_damage": 8,
+      "gold_bounty": 35,
+      "color": [0.35, 0.3, 0.25],
+      "scale": 1.4
+    }
+  },
+  "waves": [
+    { "number": 1, "type": "normal", "creep": "grunt", "count": 8, "interval": 0.6 },
+    { "number": 2, "type": "fast", "creep": "runner", "count": 10, "interval": 0.5 },
+    { "number": 3, "type": "normal", "creep": "grunt", "count": 12, "interval": 0.5 },
+    { "number": 4, "type": "swarm", "creep": "swarm", "count": 20, "interval": 0.3 },
+    { "number": 5, "type": "boss", "creep": "boss", "count": 1, "interval": 0.0, "extras": [{ "creep": "grunt", "count": 6, "interval": 0.7 }] },
+    { "number": 6, "type": "tank", "creep": "brute", "count": 4, "interval": 1.2 },
+    { "number": 7, "type": "armored", "creep": "armored", "count": 6, "interval": 0.8 },
+    { "number": 8, "type": "swarm", "creep": "swarm", "count": 25, "interval": 0.25 },
+    { "number": 9, "type": "mixed", "creep": "brute", "count": 3, "interval": 1.0, "extras": [{ "creep": "runner", "count": 8, "interval": 0.4 }] },
+    { "number": 10, "type": "boss", "creep": "boss", "count": 1, "interval": 0.0, "extras": [{ "creep": "armored", "count": 4, "interval": 1.0 }] }
+  ]
+}

@@ -1,0 +1,9 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+build/
+dist/
+*.zip
+
+# Local game install / launcher staging
+tools/launcher/install/

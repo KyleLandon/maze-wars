@@ -1,0 +1,57 @@
+{
+  "arrow": {
+    "id": "arrow",
+    "display_name": "Arrow Tower",
+    "cost": 25,
+    "damage": 12,
+    "attack_speed": 1.2,
+    "range": 3,
+    "damage_type": "physical",
+    "targeting": "closest",
+    "projectile_speed": 9,
+    "color": [0.3, 0.85, 0.4],
+    "height": 2.5
+  },
+  "cannon": {
+    "id": "cannon",
+    "display_name": "Cannon Tower",
+    "cost": 60,
+    "damage": 35,
+    "attack_speed": 0.5,
+    "range": 2,
+    "damage_type": "siege",
+    "targeting": "closest",
+    "projectile_speed": 6,
+    "splash_radius": 1,
+    "color": [0.75, 0.45, 0.2],
+    "height": 2.8
+  },
+  "frost": {
+    "id": "frost",
+    "display_name": "Frost Tower",
+    "cost": 50,
+    "damage": 8,
+    "attack_speed": 1.0,
+    "range": 2,
+    "damage_type": "magic",
+    "targeting": "closest",
+    "projectile_speed": 7,
+    "slow_percent": 0.35,
+    "slow_duration": 2.0,
+    "color": [0.4, 0.7, 1.0],
+    "height": 2.6
+  },
+  "magic": {
+    "id": "magic",
+    "display_name": "Magic Tower",
+    "cost": 75,
+    "damage": 28,
+    "attack_speed": 0.7,
+    "range": 4,
+    "damage_type": "magic",
+    "targeting": "highest_hp",
+    "projectile_speed": 8,
+    "color": [0.7, 0.3, 0.9],
+    "height": 3.0
+  }
+}

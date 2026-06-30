@@ -1,0 +1,49 @@
+[gd_scene load_steps=10 format=3 uid="uid://match001"]
+
+[ext_resource type="Script" path="res://scripts/match/match.gd" id="1_match"]
+[ext_resource type="Script" path="res://scripts/match/camera_rig.gd" id="14_camera"]
+[ext_resource type="Script" path="res://scripts/systems/send_manager.gd" id="10_send"]
+[ext_resource type="PackedScene" uid="uid://hud001" path="res://scenes/ui/hud.tscn" id="15_hud"]
+[ext_resource type="PackedScene" uid="uid://postmatch001" path="res://scenes/ui/post_match.tscn" id="16_post"]
+[ext_resource type="PackedScene" uid="uid://debugpanel001" path="res://scenes/ui/debug_panel.tscn" id="17_debug"]
+[ext_resource type="PackedScene" uid="uid://scoreboard001" path="res://scenes/ui/scoreboard.tscn" id="18_scoreboard"]
+[ext_resource type="PackedScene" uid="uid://pausemenu001" path="res://scenes/ui/pause_menu.tscn" id="19_pause"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.051, 0.055, 0.078, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.4, 0.45, 0.55, 1)
+ambient_light_energy = 0.6
+
+[node name="Match" type="Node3D"]
+script = ExtResource("1_match")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 10, 20, 10)
+shadow_enabled = true
+
+[node name="CameraRig" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707, 0.707, 0, -0.707, 0.707, 0, 30, 25)
+current = true
+script = ExtResource("14_camera")
+
+[node name="Lanes" type="Node3D" parent="."]
+
+[node name="SendManager" type="Node" parent="."]
+script = ExtResource("10_send")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UI" instance=ExtResource("15_hud")]
+
+[node name="PostMatch" parent="UI" instance=ExtResource("16_post")]
+
+[node name="DebugPanel" parent="UI" instance=ExtResource("17_debug")]
+
+[node name="Scoreboard" parent="UI" instance=ExtResource("18_scoreboard")]
+
+[node name="PauseMenu" parent="UI" instance=ExtResource("19_pause")]

@@ -1,0 +1,332 @@
+[gd_resource type="Theme" load_steps=22 format=3]
+
+; ── StyleBoxFlat: Panel ───────────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.074, 0.082, 0.122, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 0.18)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 0.0
+expand_margin_top = 0.0
+expand_margin_right = 0.0
+expand_margin_bottom = 0.0
+
+; ── StyleBoxFlat: Panel Highlight (hover / selected) ─────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_highlight"]
+bg_color = Color(0.1, 0.12, 0.18, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 0.5)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+; ── StyleBoxFlat: Button Normal ───────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
+bg_color = Color(0.0, 0.788, 1.0, 0.1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Button Hover ────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
+bg_color = Color(0.0, 0.788, 1.0, 0.22)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Button Pressed ─────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_pressed"]
+bg_color = Color(0.0, 0.788, 1.0, 0.35)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Button Disabled ────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+bg_color = Color(0.05, 0.055, 0.08, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.34, 0.42, 0.4)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Danger Button Normal ───────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_danger_normal"]
+bg_color = Color(0.8, 0.16, 0.21, 0.15)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.16, 0.21, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Danger Button Hover ────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_danger_hover"]
+bg_color = Color(0.8, 0.16, 0.21, 0.3)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.16, 0.21, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Progress Bar Background ────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_bg"]
+bg_color = Color(1.0, 1.0, 1.0, 0.05)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1.0, 1.0, 1.0, 0.06)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; ── StyleBoxFlat: Progress Bar HP Fill ───────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_hp"]
+bg_color = Color(0.8, 0.16, 0.21, 1.0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; ── StyleBoxFlat: Progress Bar Mana Fill ─────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_mana"]
+bg_color = Color(0.659, 0.333, 0.969, 1.0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; ── StyleBoxFlat: Progress Bar Shield Fill ───────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_shield"]
+bg_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; ── StyleBoxFlat: Progress Bar XP Fill ───────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_xp"]
+bg_color = Color(0.961, 0.784, 0.259, 1.0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; ── StyleBoxFlat: LineEdit / Input ───────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input"]
+bg_color = Color(0.118, 0.133, 0.188, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 0.25)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+; ── StyleBoxFlat: Input Focused ───────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_focus"]
+bg_color = Color(0.118, 0.133, 0.188, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 0.8)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+; ── StyleBoxFlat: Separator ───────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_separator"]
+bg_color = Color(0.0, 0.788, 1.0, 0.18)
+
+; ── StyleBoxFlat: Tab Active ─────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_active"]
+bg_color = Color(0.0, 0.788, 1.0, 0.12)
+border_width_bottom = 2
+border_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Tab Inactive ───────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_inactive"]
+bg_color = Color(0.0, 0.0, 0.0, 0.0)
+border_width_bottom = 2
+border_color = Color(1.0, 1.0, 1.0, 0.06)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+; ── StyleBoxFlat: Tooltip ─────────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
+bg_color = Color(0.1, 0.114, 0.165, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.788, 1.0, 0.4)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+; ── StyleBoxFlat: HSlider Track ──────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider_track"]
+bg_color = Color(1.0, 1.0, 1.0, 0.06)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+
+; ── StyleBoxFlat: HSlider Fill ───────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider_fill"]
+bg_color = Color(0.0, 0.788, 1.0, 1.0)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+
+; ─────────────────────────────────────────────────────────────────────────────
+[resource]
+
+; Panel
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+
+; PanelContainer
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+
+; Button — primary cyan style
+Button/styles/normal   = SubResource("StyleBoxFlat_btn_normal")
+Button/styles/hover    = SubResource("StyleBoxFlat_btn_hover")
+Button/styles/pressed  = SubResource("StyleBoxFlat_btn_pressed")
+Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+Button/styles/focus    = SubResource("StyleBoxFlat_btn_hover")
+Button/colors/font_color          = Color(0.0, 0.788, 1.0, 1.0)
+Button/colors/font_hover_color    = Color(0.0, 0.788, 1.0, 1.0)
+Button/colors/font_pressed_color  = Color(1.0, 1.0, 1.0, 1.0)
+Button/colors/font_disabled_color = Color(0.306, 0.337, 0.415, 1.0)
+
+; ProgressBar (HP by default — swap fill style per instance)
+ProgressBar/styles/background = SubResource("StyleBoxFlat_progress_bg")
+ProgressBar/styles/fill       = SubResource("StyleBoxFlat_progress_hp")
+ProgressBar/colors/font_color = Color(0.91, 0.918, 0.941, 1.0)
+
+; LineEdit
+LineEdit/styles/normal        = SubResource("StyleBoxFlat_input")
+LineEdit/styles/focus         = SubResource("StyleBoxFlat_input_focus")
+LineEdit/colors/font_color          = Color(0.91, 0.918, 0.941, 1.0)
+LineEdit/colors/font_placeholder_color = Color(0.306, 0.337, 0.415, 1.0)
+LineEdit/colors/caret_color         = Color(0.0, 0.788, 1.0, 1.0)
+LineEdit/colors/selection_color     = Color(0.0, 0.788, 1.0, 0.3)
+
+; Label
+Label/colors/font_color = Color(0.91, 0.918, 0.941, 1.0)
+
+; TabContainer / TabBar
+TabBar/styles/tab_selected   = SubResource("StyleBoxFlat_tab_active")
+TabBar/styles/tab_unselected = SubResource("StyleBoxFlat_tab_inactive")
+TabBar/styles/tab_hovered    = SubResource("StyleBoxFlat_tab_active")
+TabBar/colors/font_selected_color   = Color(0.0, 0.788, 1.0, 1.0)
+TabBar/colors/font_unselected_color = Color(0.604, 0.639, 0.741, 1.0)
+
+; Separator
+HSeparator/styles/separator = SubResource("StyleBoxFlat_separator")
+VSeparator/styles/separator = SubResource("StyleBoxFlat_separator")
+
+; Tooltip
+TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
+TooltipLabel/colors/font_color = Color(0.91, 0.918, 0.941, 1.0)
+
+; HSlider
+HSlider/styles/slider      = SubResource("StyleBoxFlat_slider_track")
+HSlider/styles/grabber_area = SubResource("StyleBoxFlat_slider_fill")

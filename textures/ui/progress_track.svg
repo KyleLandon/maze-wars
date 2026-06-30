@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="10" viewBox="0 0 200 10">
+  <rect width="200" height="10" rx="2" fill="#ffffff0d" stroke="#ffffff0f" stroke-width="1"/>
+  <!-- Segment dividers -->
+  <line x1="50"  y1="0" x2="50"  y2="10" stroke="#00000080" stroke-width="1"/>
+  <line x1="100" y1="0" x2="100" y2="10" stroke="#00000080" stroke-width="1"/>
+  <line x1="150" y1="0" x2="150" y2="10" stroke="#00000080" stroke-width="1"/>
+</svg>

@@ -1,0 +1,36 @@
+{
+  "packages": [
+    {
+      "id": "rat_pack",
+      "display_name": "Rat Pack",
+      "cost": 25,
+      "income_gain": 1,
+      "unlock_wave": 1,
+      "contents": [{ "creep": "rat", "count": 4, "interval": 0.4 }]
+    },
+    {
+      "id": "wolf_pack",
+      "display_name": "Wolf Pack",
+      "cost": 60,
+      "income_gain": 2,
+      "unlock_wave": 2,
+      "contents": [{ "creep": "wolf", "count": 3, "interval": 0.5 }]
+    },
+    {
+      "id": "brute_pack",
+      "display_name": "Brute Pack",
+      "cost": 140,
+      "income_gain": 5,
+      "unlock_wave": 4,
+      "contents": [{ "creep": "brute", "count": 2, "interval": 1.0 }]
+    },
+    {
+      "id": "swarm_pack",
+      "display_name": "Swarm Pack",
+      "cost": 180,
+      "income_gain": 6,
+      "unlock_wave": 5,
+      "contents": [{ "creep": "swarm", "count": 10, "interval": 0.25 }]
+    }
+  ]
+}
