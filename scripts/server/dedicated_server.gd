@@ -91,8 +91,11 @@ func _log(message: String) -> void:
 
 
 func _refresh_ui() -> void:
+	var host_ip := str(NetworkManager.host_address_hint)
+	if host_ip.is_empty():
+		host_ip = "starting..."
 	address_label.text = "Address: %s:%d  ·  Uptime: %s" % [
-		NetworkManager.host_address_hint,
+		host_ip,
 		NetworkManager.DEFAULT_PORT,
 		_format_duration(Time.get_ticks_msec() / 1000.0 - _started_at),
 	]

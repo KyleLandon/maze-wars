@@ -343,7 +343,7 @@ func rpc_kick_with_message(message: String) -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-@rpc("authority", "call_remote", "call_local", "reliable")
+@rpc("authority", "call_local", "reliable")
 func rpc_load_lobby() -> void:
 	if get_tree().current_scene == null:
 		return
@@ -359,7 +359,7 @@ func rpc_load_lobby() -> void:
 	get_tree().change_scene_to_file(target_scene)
 
 
-@rpc("authority", "call_remote", "call_local", "reliable")
+@rpc("authority", "call_local", "reliable")
 func rpc_begin_match(player_count: int) -> void:
 	match_player_count = maxi(MIN_PLAYERS_TO_START, player_count)
 	_match_loading = true
