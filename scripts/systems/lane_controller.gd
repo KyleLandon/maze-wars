@@ -122,6 +122,7 @@ func _wire_systems() -> void:
 	wave_manager.setup(creep_spawner)
 	tower_manager.setup(build_grid, economy, creep_spawner)
 	tower_manager.lane_root = _entities
+	tower_manager.owner_lane = self
 	tower_manager.owner_id = lane_id
 	wave_manager.set_process(false)
 	core.setup()

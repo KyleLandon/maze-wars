@@ -25,6 +25,7 @@ var towers: Array = []
 
 var tower_damage_stats: Dictionary = {}
 var _undo_sell_stack: Array = []
+var owner_lane: LaneController
 
 
 func setup(p_grid: BuildGrid, p_economy: EconomyManager, p_spawner: CreepSpawner) -> void:
@@ -114,6 +115,16 @@ func select_towers_in_screen_rect(camera: Camera3D, screen_rect: Rect2) -> void:
 	_set_selection(picked)
 
 
+func select_towers_at_cells(cells: Array) -> void:
+	var picked: Array = []
+	for cell_value in cells:
+		var cell: Vector2i = _grid_cell_from_state(cell_value)
+		var tower = build_grid.get_tower_at(cell)
+		if tower != null:
+			picked.append(tower)
+	_set_selection(picked)
+
+
 func clear_selection() -> void:
 	_set_selection([])
 
@@ -143,9 +154,9 @@ func _prune_selection() -> void:
 		_set_selection(valid)
 
 
-func try_upgrade() -> void:
+func try_upgrade() -> Dictionary:
 	if selected_towers.is_empty():
-		return
+		return { "success": false, "reason": "Nothing selected" }
 	var upgraded := 0
 	var last_reason := "Cannot upgrade"
 	for tower in selected_towers.duplicate():
@@ -157,17 +168,20 @@ func try_upgrade() -> void:
 			upgraded += 1
 	if upgraded > 0:
 		placement_result.emit(true, "Upgraded %d tower(s)" % upgraded)
-	else:
-		placement_result.emit(false, last_reason)
+		_prune_selection()
+		return { "success": true, "reason": "Upgraded %d tower(s)" % upgraded }
+	placement_result.emit(false, last_reason)
 	_prune_selection()
+	return { "success": false, "reason": last_reason }
 
 
-func try_sell() -> void:
+func try_sell() -> Dictionary:
 	if selected_towers.is_empty():
-		return
+		return { "success": false, "reason": "Nothing selected" }
 	var sold := 0
 	var last_reason := "Cannot sell"
 	var undo_batch: Array = []
+	var sold_cells: Array = []
 	for tower in selected_towers.duplicate():
 		if not is_instance_valid(tower):
 			continue
@@ -178,6 +192,7 @@ func try_sell() -> void:
 		last_reason = str(result.get("reason", ""))
 		if result.get("success", false):
 			sold += 1
+			sold_cells.append(_grid_cell_from_state(snapshot.get("grid_cell", tower.grid_cell)))
 			towers.erase(tower)
 			undo_batch.append(snapshot)
 	if sold > 0:
@@ -185,8 +200,9 @@ func try_sell() -> void:
 			_push_undo_batch(undo_batch)
 		clear_selection()
 		placement_result.emit(true, "Sold %d tower(s)" % sold)
-	else:
-		placement_result.emit(false, last_reason)
+		return { "success": true, "reason": "Sold %d tower(s)" % sold, "sold_cells": sold_cells }
+	placement_result.emit(false, last_reason)
+	return { "success": false, "reason": last_reason, "sold_cells": [] }
 
 
 func try_undo_sell() -> void:
@@ -221,7 +237,7 @@ func _push_undo_batch(batch: Array) -> void:
 
 
 func _can_restore_tower(state: Dictionary) -> Dictionary:
-	var cell: Vector2i = state.get("grid_cell", Vector2i(-1, -1))
+	var cell: Vector2i = _grid_cell_from_state(state.get("grid_cell", Vector2i(-1, -1)))
 	if not LaneCoords.is_in_bounds(cell):
 		return { "valid": false, "reason": "Invalid cell" }
 	if build_grid.towers_by_cell.has(cell):
@@ -237,7 +253,7 @@ func _restore_tower(state: Dictionary) -> Node:
 	var tower: Node3D = TOWER_SCENE.instantiate()
 	var parent: Node = lane_root if lane_root else get_tree().current_scene
 	parent.add_child(tower)
-	var cell: Vector2i = state.get("grid_cell", Vector2i.ZERO)
+	var cell: Vector2i = _grid_cell_from_state(state.get("grid_cell", Vector2i.ZERO))
 	var tid: String = str(state.get("tower_id", "arrow"))
 	tower.setup(tid, cell, owner_id, creep_spawner, self)
 	if tower.has_method("restore_snapshot"):
@@ -261,7 +277,8 @@ func apply_remote_place(tower_id: String, grid: Vector2i) -> void:
 	parent.add_child(tower)
 	tower.setup(tower_id, grid, owner_id, creep_spawner, self)
 	if NetworkManager.is_online() and not multiplayer.is_server():
-		tower.set_process(false)
+		if owner_lane != null and not owner_lane.is_local_lane():
+			tower.set_process(false)
 	build_grid.register_tower(grid, tower)
 	towers.append(tower)
 
@@ -292,3 +309,13 @@ func get_top_damage_tower() -> String:
 			best_val = tower_damage_stats[key]
 			best_id = key
 	return best_id
+
+
+func _grid_cell_from_state(value: Variant) -> Vector2i:
+	if value is Vector2i:
+		return value
+	if value is Dictionary:
+		return Vector2i(int(value.get("x", 0)), int(value.get("y", 0)))
+	if value is Array and value.size() >= 2:
+		return Vector2i(int(value[0]), int(value[1]))
+	return Vector2i(-1, -1)

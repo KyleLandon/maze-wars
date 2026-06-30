@@ -22,6 +22,8 @@ func apply_network_health(current: int, maximum: int) -> void:
 	max_health = maximum
 	current_health = current
 	health_changed.emit(current_health, max_health)
+	if current_health <= 0:
+		destroyed.emit()
 
 
 func take_leak_damage(amount: int, armor_type: String = "") -> void:

@@ -40,6 +40,8 @@ func set_client_mirror(enabled: bool) -> void:
 
 
 func spawn_wave(wave_data: Dictionary) -> void:
+	if _client_mirror:
+		return
 	var creep_id: String = wave_data.get("creep", "grunt")
 	var count: int = int(wave_data.get("count", 1))
 	var interval: float = float(wave_data.get("interval", 0.5))

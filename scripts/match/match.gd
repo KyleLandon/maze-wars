@@ -185,7 +185,7 @@ func _connect_signals() -> void:
 	hud.tower_build_requested.connect(func(tower_id: String): tower_manager.set_build_mode(tower_id))
 	hud.upgrade_requested.connect(func(): network.request_upgrade())
 	hud.sell_requested.connect(func(): network.request_sell())
-	hud.undo_requested.connect(func(): tower_manager.try_undo_sell())
+	hud.undo_requested.connect(_on_undo_requested)
 	hud.send_requested.connect(_on_send_requested)
 	post_match.dismissed.connect(_restart_match)
 	pause_menu.forfeit_requested.connect(_on_forfeit_requested)
@@ -476,7 +476,15 @@ func _on_wave_preview(wave_number: int, wave_data: Dictionary) -> void:
 		wave_data.get("count", 0),
 		def.get("display_name", creep_id), def.get("armor_type", "")
 	]
-	hud.update_wave(wave_coordinator.get_current_wave_number(), preview)
+	hud.update_wave(_wave_display_number(wave_number), preview)
+	if NetworkManager.is_server():
+		network.on_wave_preview(wave_number, wave_data)
+
+
+func _wave_display_number(preview_wave_number: int) -> int:
+	if NetworkManager.is_online() and not NetworkManager.is_server():
+		return maxi(preview_wave_number - 1, 0)
+	return wave_coordinator.get_current_wave_number()
 
 
 func _on_player_leak(_creep: Node, damage: int) -> void:
@@ -535,7 +543,17 @@ func _on_all_waves_complete() -> void:
 		await get_tree().create_timer(0.5).timeout
 	if _match_over:
 		return
-	_end_match(true)
+	if NetworkManager.is_online():
+		_end_match(true, true)
+	else:
+		_end_match(true)
+
+
+func _on_undo_requested() -> void:
+	if NetworkManager.is_online():
+		hud.show_message("Undo is not available in multiplayer", BrandColors.UI_TEXT_MUTED)
+		return
+	local_lane.tower_manager.try_undo_sell()
 
 
 func _on_local_lane_defeat() -> void:
@@ -554,13 +572,21 @@ func _on_peer_disconnected(_peer_id: int) -> void:
 	_end_match(true)
 
 
-func _end_match(victory: bool) -> void:
+func _end_match(victory: bool, mutual: bool = false) -> void:
 	if _match_over:
 		return
 	var stats := _build_match_stats(victory)
-	if NetworkManager.is_server():
-		network.on_match_end(victory, stats)
-	_show_match_end(victory, stats)
+	if NetworkManager.is_online() and NetworkManager.is_server():
+		var winner_peer_id := 0
+		if mutual:
+			winner_peer_id = 0
+		elif victory:
+			winner_peer_id = NetworkManager.get_local_peer_id()
+		elif opponent_lane != null:
+			winner_peer_id = opponent_lane.control_peer_id
+		network.on_match_end(winner_peer_id, stats)
+	var local_victory := victory if not mutual else true
+	_show_match_end(local_victory, stats)
 
 
 func _show_match_end(victory: bool, stats: Dictionary) -> void:
