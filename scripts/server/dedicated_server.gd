@@ -1,13 +1,12 @@
 extends Control
 
-## Dedicated server dashboard — stays on this screen; match sim runs in a hidden viewport.
+## Dedicated server dashboard — match sim runs at /root/Match (same RPC path as clients).
 
 @onready var status_label: Label = $Panel/Margin/VBox/StatusLabel
 @onready var address_label: Label = $Panel/Margin/VBox/AddressLabel
 @onready var phase_label: Label = $Panel/Margin/VBox/PhaseLabel
 @onready var stats_label: Label = $Panel/Margin/VBox/StatsLabel
 @onready var log_label: Label = $Panel/Margin/VBox/LogLabel
-@onready var match_host: SubViewport = $MatchHost
 
 var _match_root: Node = null
 var _phase: String = "starting"
@@ -54,7 +53,10 @@ func host_match_simulation(_player_count: int) -> void:
 		return
 	var match_scene: PackedScene = load(NetworkManager.MATCH_SCENE)
 	_match_root = match_scene.instantiate()
-	match_host.add_child(_match_root)
+	_match_root.name = "Match"
+	# Must match client scene path (/root/Match) so multiplayer RPCs resolve.
+	get_tree().root.add_child(_match_root)
+	_match_root.visible = false
 	_phase = "match"
 	_log("Match started — %d players" % NetworkManager.match_player_count)
 	_refresh_ui()
