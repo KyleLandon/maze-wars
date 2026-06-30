@@ -21,6 +21,15 @@ var _network_creeps: Dictionary = {}
 var _client_mirror: bool = false
 
 
+func _find_match_root() -> Node:
+	var node: Node = owner_lane if owner_lane != null else self
+	while node != null:
+		if node.has_method("notify_creep_spawned"):
+			return node
+		node = node.get_parent()
+	return null
+
+
 func setup(p_path: PathManager, p_economy: EconomyManager) -> void:
 	path_manager = p_path
 	economy = p_economy
@@ -133,16 +142,16 @@ func apply_network_states(packed: PackedFloat32Array) -> void:
 func _notify_creep_spawned(creep: Node, net_id: int) -> void:
 	if _client_mirror:
 		return
-	var match_node := get_tree().current_scene
-	if match_node != null and match_node.has_method("notify_creep_spawned"):
+	var match_node := _find_match_root()
+	if match_node != null:
 		match_node.notify_creep_spawned(owner_lane, creep, net_id)
 
 
 func _notify_creep_removed(net_id: int) -> void:
 	if _client_mirror or net_id < 0:
 		return
-	var match_node := get_tree().current_scene
-	if match_node != null and match_node.has_method("notify_creep_removed"):
+	var match_node := _find_match_root()
+	if match_node != null:
 		match_node.notify_creep_removed(owner_lane, net_id)
 
 
@@ -171,7 +180,7 @@ func _unregister_network_creep(creep: Node) -> void:
 
 func redistribute_creep(creep: Node) -> void:
 	_active_creeps.erase(creep)
-	var match_node := get_tree().current_scene
+	var match_node := _find_match_root()
 	if match_node == null or not match_node.has_method("get_redistribution_targets"):
 		creep.queue_free()
 		return

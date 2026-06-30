@@ -1,6 +1,6 @@
 extends Control
 
-## Pre-match queue — ready up; dedicated server auto-starts when all players are ready.
+## Pre-match queue — vote to start; server begins at >=50% when min players joined.
 
 @onready var panel: PanelContainer = $Panel
 @onready var status_label: Label = $Panel/Margin/VBox/StatusLabel
@@ -25,8 +25,11 @@ func _ready() -> void:
 	UIStyles.style_button(ready_button, "accent")
 	UIStyles.style_button(leave_button, "ghost")
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mode_label.text = "FFA · %d–%d players · server starts when all are ready" % [
-		NetworkManager.MIN_PLAYERS_TO_START, NetworkManager.MAX_LOBBY_PLAYERS
+	mode_label.text = "FFA · %d–%d players · starts at %d%% vote (min %d)" % [
+		NetworkManager.MIN_PLAYERS_TO_START,
+		NetworkManager.MAX_LOBBY_PLAYERS,
+		int(NetworkManager.START_VOTE_RATIO * 100.0),
+		NetworkManager.MIN_PLAYERS_TO_START,
 	]
 	name_input.text = GameConfig.get_player_name()
 	call_deferred("_build_slot_widgets")
@@ -78,14 +81,25 @@ func _refresh_ui() -> void:
 			_slot_status_labels[i].text = "Empty"
 		else:
 			_slot_labels[i].text = str(entry.get("name", "Player"))
-			_slot_status_labels[i].text = "Ready" if entry.get("ready", false) else "Not ready"
+			var voted := bool(entry.get("ready", false))
+			_slot_status_labels[i].text = "Vote start" if voted else "Waiting"
 			if int(entry.get("peer_id", 0)) == NetworkManager.get_local_peer_id():
 				_slot_status_labels[i].text += " · You"
-	ready_button.text = "LEAVE QUEUE" if NetworkManager.is_local_ready() else "JOIN QUEUE"
-	if NetworkManager.is_local_ready():
-		status_label.text = "In queue — waiting for other players..."
+	var voted := NetworkManager.is_local_ready()
+	ready_button.text = "CANCEL VOTE" if voted else "VOTE TO START"
+	var summary: Dictionary = NetworkManager.get_start_vote_summary()
+	if summary.total < NetworkManager.MIN_PLAYERS_TO_START:
+		status_label.text = "Waiting for players (%d/%d min)..." % [
+			summary.total, NetworkManager.MIN_PLAYERS_TO_START
+		]
+	elif voted:
+		status_label.text = "Votes %d/%d — need %d to start" % [
+			summary.votes, summary.total, summary.needed
+		]
 	else:
-		status_label.text = "Click JOIN QUEUE when you're ready to play."
+		status_label.text = "Vote to start (%d/%d votes, need %d)" % [
+			summary.votes, summary.total, summary.needed
+		]
 
 
 func _on_ready_pressed() -> void:

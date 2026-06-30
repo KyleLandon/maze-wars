@@ -117,9 +117,13 @@ func _refresh_ui() -> void:
 		_refresh_match_stats()
 	else:
 		phase_label.text = "LOBBY — waiting for players"
-		stats_label.text = "%d / %d players · need %d+ ready to auto-start" % [
+		var summary := NetworkManager.get_start_vote_summary()
+		stats_label.text = "%d / %d players · votes %d/%d (need %d, min %d)" % [
 			NetworkManager.get_lobby_player_count(),
 			NetworkManager.MAX_LOBBY_PLAYERS,
+			summary.votes,
+			summary.total,
+			summary.needed,
 			NetworkManager.MIN_PLAYERS_TO_START,
 		]
 	log_label.text = _build_log_text()
@@ -149,7 +153,7 @@ func _build_log_text() -> String:
 	for slot in NetworkManager.get_lobby_slots():
 		if slot.is_empty():
 			continue
-		var ready_text := "ready" if slot.get("ready", false) else "not ready"
+		var ready_text := "vote start" if slot.get("ready", false) else "no vote"
 		lines.append("  · %s (peer %s) — %s" % [
 			slot.get("name", "Player"),
 			str(slot.get("peer_id", "?")),

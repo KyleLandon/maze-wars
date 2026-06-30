@@ -16,12 +16,12 @@ Default server address is in **`config/network.json`**. Change it and ship a new
 You need **3 windows**:
 
 1. `Run-Dedicated-Server.bat` — leave the dashboard open (**LOBBY**).
-2. Client 1 → **`127.0.0.1`** → **JOIN QUEUE** → **JOIN QUEUE** (ready).
-3. Client 2 → **`127.0.0.1`** → **JOIN QUEUE** → **JOIN QUEUE** (ready).
+2. Client 1 → **`127.0.0.1`** → connect → **VOTE TO START**.
+3. Client 2 → **`127.0.0.1`** → connect → **VOTE TO START**.
 
 Do **not** use the public IP on the same PC — most routers block hairpin NAT. The client auto-retries `127.0.0.1` if the public IP fails.
 
-The server dashboard lists both players. The match **auto-starts** when everyone in queue is ready (minimum **2**).
+Match **auto-starts** when **≥50%** have voted (2 players → 1 vote is enough).
 
 ## Internet play
 
@@ -38,8 +38,11 @@ Alternatives: **Tailscale / ZeroTier / Hamachi** (virtual LAN).
 |--------|--------|
 | Max players | 4 |
 | Min to start | 2 |
+| Start votes | **≥50%** of players in queue (e.g. 1/2, 2/3, 2/4) |
 | Mode | FFA (1 lane per player) |
-| Start | Auto when all players are in queue |
+| Start | Auto when vote threshold met |
+
+See **`docs/SERVER_ARCHITECTURE.md`** for scaling beyond one match per server.
 
 ## Controls
 
@@ -54,7 +57,7 @@ Alternatives: **Tailscale / ZeroTier / Hamachi** (virtual LAN).
 | Stuck on Connecting | Server running? Firewall allows UDP 7777? Port-forward? Same PC → **127.0.0.1** |
 | RPC / checksum errors | **Same build on all PCs** — launcher on everyone, don’t mix F5 with export |
 | Can’t place towers | Same version; update to latest release |
-| Match won’t start | All players must **JOIN QUEUE**; need at least 2 |
+| Match won’t start | Need min **2** players and **≥50%** votes to start |
 | Server won’t start | Run from installed `MazeWars.exe`; check port 7777 is free |
 
 ## Technical notes

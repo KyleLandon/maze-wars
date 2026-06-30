@@ -13,6 +13,7 @@ const DEFAULT_PORT := 7777
 const MAX_LOBBY_PLAYERS := 4
 const MAX_CLIENTS := MAX_LOBBY_PLAYERS - 1
 const MIN_PLAYERS_TO_START := 2
+const START_VOTE_RATIO := 0.5
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 const LOBBY_SCENE := "res://scenes/ui/lobby.tscn"
 const DEDICATED_SERVER_SCENE := "res://scenes/server/dedicated_server.tscn"
@@ -91,6 +92,16 @@ func get_lobby_slots() -> Array:
 func is_local_ready() -> bool:
 	var player: LobbyPlayer = _lobby_players.get(get_local_peer_id())
 	return player != null and player.ready
+
+
+func get_start_vote_summary() -> Dictionary:
+	var total := _lobby_players.size()
+	var votes := 0
+	for player in _lobby_players.values():
+		if player.ready:
+			votes += 1
+	var needed := ceili(float(total) * START_VOTE_RATIO) if total > 0 else MIN_PLAYERS_TO_START
+	return {"votes": votes, "total": total, "needed": needed}
 
 
 func start_server(port: int = DEFAULT_PORT) -> Error:
@@ -533,12 +544,10 @@ func _set_player_ready(peer_id: int, ready: bool) -> void:
 
 
 func _can_start_match() -> bool:
-	if _lobby_players.size() < MIN_PLAYERS_TO_START:
+	var summary := get_start_vote_summary()
+	if summary.total < MIN_PLAYERS_TO_START:
 		return false
-	for player in _lobby_players.values():
-		if not player.ready:
-			return false
-	return true
+	return summary.votes >= summary.needed
 
 
 func _check_auto_start() -> void:
