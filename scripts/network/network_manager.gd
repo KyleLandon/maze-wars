@@ -46,7 +46,6 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	if _is_dedicated_server_arg():
 		is_dedicated_server = true
-		call_deferred("_boot_dedicated_server")
 
 
 func _process(delta: float) -> void:
@@ -181,7 +180,21 @@ func enter_lobby() -> void:
 	in_lobby = true
 	_ensure_host_in_lobby()
 	_broadcast_lobby()
+	if is_dedicated_server:
+		lobby_updated.emit()
+		return
 	rpc_load_lobby.rpc()
+
+
+func boot_dedicated_server_panel() -> void:
+	if multiplayer_mode != "solo":
+		return
+	is_dedicated_server = true
+	var err := host_game()
+	if err != OK:
+		push_error("Dedicated server failed to bind port %d" % DEFAULT_PORT)
+		return
+	enter_lobby()
 
 
 func set_local_ready(ready: bool) -> void:
@@ -205,10 +218,14 @@ func return_to_lobby() -> void:
 		return
 	_match_loading = false
 	in_lobby = true
+	_unload_dedicated_match()
 	if is_server():
 		for player in _lobby_players.values():
 			player.ready = false
 		_broadcast_lobby()
+	if is_dedicated_server:
+		lobby_updated.emit()
+		return
 	rpc_load_lobby.rpc()
 
 
@@ -330,7 +347,13 @@ func rpc_kick_with_message(message: String) -> void:
 func rpc_load_lobby() -> void:
 	if get_tree().current_scene == null:
 		return
-	var target_scene := DEDICATED_SERVER_SCENE if is_dedicated_server else LOBBY_SCENE
+	if is_dedicated_server:
+		if get_tree().current_scene.scene_file_path == DEDICATED_SERVER_SCENE:
+			in_lobby = true
+			_unload_dedicated_match()
+			lobby_updated.emit()
+		return
+	var target_scene := LOBBY_SCENE
 	if get_tree().current_scene.scene_file_path == target_scene:
 		return
 	get_tree().change_scene_to_file(target_scene)
@@ -341,11 +364,27 @@ func rpc_begin_match(player_count: int) -> void:
 	match_player_count = maxi(MIN_PLAYERS_TO_START, player_count)
 	_match_loading = true
 	in_lobby = false
+	if is_dedicated_server:
+		if multiplayer.is_server():
+			_start_dedicated_match_sim()
+		return
 	if get_tree().current_scene == null:
 		return
 	if get_tree().current_scene.scene_file_path == MATCH_SCENE:
 		return
 	get_tree().change_scene_to_file(MATCH_SCENE)
+
+
+func _start_dedicated_match_sim() -> void:
+	var panel := get_tree().current_scene
+	if panel != null and panel.has_method("host_match_simulation"):
+		panel.host_match_simulation(match_player_count)
+
+
+func _unload_dedicated_match() -> void:
+	var panel := get_tree().current_scene
+	if panel != null and panel.has_method("unload_match_simulation"):
+		panel.unload_match_simulation()
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -427,14 +466,6 @@ func _on_server_disconnected() -> void:
 	_set_status("Disconnected from host")
 	if get_tree().current_scene != null:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
-
-
-func _boot_dedicated_server() -> void:
-	var err := host_game()
-	if err != OK:
-		push_error("Dedicated server failed to bind port %d" % DEFAULT_PORT)
-		return
-	enter_lobby()
 
 
 func _ensure_host_in_lobby() -> void:

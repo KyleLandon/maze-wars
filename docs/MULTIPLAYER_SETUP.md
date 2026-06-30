@@ -16,9 +16,9 @@ Online **FFA lobby** aligned with PRD MVP 3: up to **4 players**, host-authorita
 ### Option B — Dedicated server on your PC
 
 1. Run `tools/network/Run-Dedicated-Server.bat` (or `MazeWars.exe --dedicated-server`).
-2. Note the machine’s LAN IP.
-3. Players **JOIN LOBBY** with that IP — no host player required on the game UI.
-4. When **all connected players are ready**, the server **auto-starts** the match.
+2. A **server dashboard** window opens (not the 3D game). It shows IP, connected players, and live match stats.
+3. Players **JOIN LOBBY** with that IP from the normal game client.
+4. When **all connected players are ready**, the server auto-starts the match in the background.
 
 Use a cheap VPS the same way if you port-forward **UDP 7777** (or run on the VPS public IP).
 

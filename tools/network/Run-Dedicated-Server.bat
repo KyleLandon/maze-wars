@@ -1,5 +1,5 @@
 @echo off
-REM Run a Maze Wars dedicated lobby server (auto-starts when all players ready).
+REM Dedicated server — opens the server dashboard (not the game client).
 setlocal
 set "GAME_DIR=%LOCALAPPDATA%\MazeWars"
 set "EXE=%GAME_DIR%\MazeWars.exe"
@@ -9,5 +9,5 @@ if not exist "%EXE%" (
   pause
   exit /b 1
 )
-echo Starting dedicated server on UDP 7777...
+echo Starting Maze Wars dedicated server dashboard on UDP 7777...
 "%EXE%" --dedicated-server
