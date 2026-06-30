@@ -129,7 +129,11 @@ function Write-UpdaterShortcut {
 
 try {
     $release = Get-LatestRelease
-    $remoteVersion = [string]$release.published_at
+    $asset = Get-ReleaseAsset $release
+    $remoteVersion = [string]$asset.updated_at
+    if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
+        $remoteVersion = [string]$release.published_at
+    }
     if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
         $remoteVersion = [string]$release.tag_name
     }
@@ -139,7 +143,6 @@ try {
         Write-Status "Skipping update check."
     }
     elseif ($localVersion -ne $remoteVersion -or -not (Test-Path $GameExe)) {
-        $asset = Get-ReleaseAsset $release
         Download-And-Install $asset $remoteVersion
     }
     else {
