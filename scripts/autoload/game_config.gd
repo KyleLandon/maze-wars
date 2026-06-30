@@ -10,6 +10,7 @@ var match_active: bool = false
 var match_start_time: float = 0.0
 var debug_mode: bool = true
 var master_volume: float = 1.0
+var player_name: String = "Player"
 
 
 func _ready() -> void:
@@ -19,16 +20,40 @@ func _ready() -> void:
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) != OK:
+		player_name = _default_player_name()
 		apply_audio_settings()
 		return
 	master_volume = clampf(float(cfg.get_value("audio", "master_volume", 1.0)), 0.0, 1.0)
+	player_name = str(cfg.get_value("player", "name", _default_player_name()))
 	apply_audio_settings()
 
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("audio", "master_volume", master_volume)
+	cfg.set_value("player", "name", player_name)
 	cfg.save(SETTINGS_PATH)
+
+
+func get_player_name() -> String:
+	var trimmed := player_name.strip_edges()
+	if trimmed.is_empty():
+		return _default_player_name()
+	return trimmed.substr(0, 20)
+
+
+func set_player_name(name: String) -> void:
+	player_name = name.strip_edges().substr(0, 20)
+	save_settings()
+
+
+func _default_player_name() -> String:
+	var user := OS.get_environment("USERNAME")
+	if user.is_empty():
+		user = OS.get_environment("USER")
+	if user.is_empty():
+		return "Player"
+	return user.substr(0, 20)
 
 
 func set_master_volume(linear: float) -> void:

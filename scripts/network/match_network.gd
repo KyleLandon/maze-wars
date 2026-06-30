@@ -1,7 +1,7 @@
 class_name MatchNetwork
 extends Node
 
-## Host-authoritative multiplayer sync for 2-player matches.
+## Host-authoritative multiplayer sync for 2–4 player FFA matches.
 
 const SYNC_INTERVAL := 0.08
 
@@ -84,23 +84,26 @@ func _rebuild_peer_lanes() -> void:
 	if _match == null:
 		return
 	var host_id := multiplayer.get_unique_id()
-	var host_lane: LaneController = null
-	var guest_lane: LaneController = null
+	var peers: Array = multiplayer.get_peers()
+	peers.sort()
+	var peer_ids: Array = []
+	if NetworkManager.is_dedicated_server:
+		for peer in peers:
+			peer_ids.append(int(peer))
+	else:
+		peer_ids.append(host_id)
+		for peer in peers:
+			peer_ids.append(int(peer))
+	var human_lanes: Array = []
 	for lane in _match.human_lanes:
-		if lane == null or not lane is LaneController:
-			continue
-		if lane.lane_id == "player":
-			host_lane = lane
-		elif lane.lane_id == "player_2":
-			guest_lane = lane
-	if host_lane:
-		host_lane.control_peer_id = host_id
-		_lanes_by_peer[host_id] = host_lane
-	if guest_lane:
-		var peers := multiplayer.get_peers()
-		var guest_id: int = int(peers[0]) if peers.size() > 0 else guest_lane.control_peer_id
-		guest_lane.control_peer_id = guest_id
-		_lanes_by_peer[guest_id] = guest_lane
+		if lane is LaneController and lane.is_player:
+			human_lanes.append(lane)
+	human_lanes.sort_custom(func(a, b): return a.lane_id < b.lane_id)
+	for i in range(mini(peer_ids.size(), human_lanes.size())):
+		var lane: LaneController = human_lanes[i]
+		var peer_id: int = int(peer_ids[i])
+		lane.control_peer_id = peer_id
+		_lanes_by_peer[peer_id] = lane
 
 
 func _sync_initial_state() -> void:
@@ -112,22 +115,7 @@ func _sync_initial_state() -> void:
 
 
 func lane_for_peer(peer_id: int):
-	if _lanes_by_peer.has(peer_id):
-		return _lanes_by_peer[peer_id]
-	if multiplayer.is_server() and peer_id > 0 and peer_id != multiplayer.get_unique_id():
-		return _remote_player_lane()
-	return null
-
-
-func _remote_player_lane():
-	if _match == null:
-		return null
-	for lane in _match.human_lanes:
-		if lane == null or not lane.is_player:
-			continue
-		if int(lane.control_peer_id) != int(multiplayer.get_unique_id()):
-			return lane
-	return null
+	return _lanes_by_peer.get(peer_id)
 
 
 func lane_by_id(lane_id: String):
@@ -205,10 +193,6 @@ func _disable_client_simulation(lanes: Array) -> void:
 
 
 func handle_place_request(peer_id: int, cell: Vector2i, tower_id: String) -> void:
-	if peer_id <= 0 and multiplayer.is_server():
-		var peers := multiplayer.get_peers()
-		if peers.size() > 0:
-			peer_id = int(peers[0])
 	if peer_id <= 0:
 		push_warning("MatchNetwork: place request with invalid peer id %d" % peer_id)
 		return

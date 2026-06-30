@@ -1,66 +1,70 @@
-# Multiplayer setup (2-player LAN)
+# Multiplayer setup (2–4 player FFA)
 
-Early **2-player LAN** support for testing. The host runs the authoritative simulation; the other player connects and controls their own lane.
+Online **FFA lobby** aligned with PRD MVP 3: up to **4 players**, host-authoritative simulation, sends hit **all enemy lanes**.
 
 ## Quick test (same Wi‑Fi / LAN)
 
-### Host (you)
+### Option A — Peer host (you + friends)
 
-1. Launch the game.
-2. **(Recommended)** Run `tools/network/Open-Firewall-Port.bat` as admin once — opens **UDP 7777**.
-3. Click **HOST LAN GAME**.
-4. Read the status line — it shows **your IP** (e.g. `192.168.1.42:7777`). Text or Discord that IP to your guest.
-5. Wait for “Guest connected” — the match starts automatically.
+1. Launch the game on both PCs (same build via launcher).
+2. **(Recommended)** Run `tools/network/Open-Firewall-Port.bat` as admin on the host — opens **UDP 7777**.
+3. **Host:** click **HOST LOBBY** → share your IP (e.g. `192.168.4.24:7777`).
+4. **Guests:** enter host IP → **JOIN LOBBY**.
+5. Everyone clicks **READY UP**.
+6. **Host** clicks **START MATCH** when all players are ready (minimum **2**).
 
-**You must host first**, then she joins.
+### Option B — Dedicated server on your PC
 
-### Guest (your girlfriend)
+1. Run `tools/network/Run-Dedicated-Server.bat` (or `MazeWars.exe --dedicated-server`).
+2. Note the machine’s LAN IP.
+3. Players **JOIN LOBBY** with that IP — no host player required on the game UI.
+4. When **all connected players are ready**, the server **auto-starts** the match.
 
-1. Launch the game (same build as host).
-2. Type the **host’s IP** in the box.
-   - **Same PC test (two windows):** use `127.0.0.1`
-   - **Two PCs on Wi‑Fi:** use the host’s `192.168.x.x` IP (not your own)
-3. Click **JOIN LAN GAME**.
-4. Should change to “Connected” then load the match within a few seconds.
+Use a cheap VPS the same way if you port-forward **UDP 7777** (or run on the VPS public IP).
 
-If it says **Connecting** for more than ~20 seconds, the PCs are not reaching each other (wrong IP, firewall, or not on same network).
+## Lobby rules
+
+| Setting | Value |
+|--------|--------|
+| Max players | 4 |
+| Min to start | 2 |
+| Mode | FFA (1 lane per player) |
+| Start | Host clicks Start **or** dedicated server auto-starts when all ready |
 
 ## Controls (unchanged)
 
-- Build towers, upgrade, sell, send creeps — each player only controls **their lane**.
-- Sends hit the **opponent’s lane** (no AI in 2-player mode).
-- **Tab** scoreboard, **Esc** pause menu.
+- Build, upgrade, sell, send — each player controls **their lane** only.
+- Sends hit **every other human lane** in the match.
+- **Tab** scoreboard · **Esc** pause.
 
-## Playing over the internet (not same LAN)
+## Playing over the internet
 
-LAN uses a direct IP connection. Over the internet you typically need one of:
+LAN uses direct IP. Over the internet:
 
-1. **Port forwarding** on the host router: forward **UDP 7777** to the host PC’s LAN IP.
-2. Host gives their **public IP** (search “what is my ip”) to the guest.
-3. Guest enters that public IP and joins.
+1. Port-forward **UDP 7777** on the host/router to the server PC.
+2. Guests join the **public IP**.
 
-Alternatives if port forwarding is awkward:
-
-- **Hamachi / ZeroTier / Tailscale** — virtual LAN; guest joins the host’s virtual IP.
-- **Steam Remote Play Together** — shares one screen; not true 2-keyboard multiplayer.
+Alternatives: **Tailscale / ZeroTier / Hamachi** (virtual LAN).
 
 ## Troubleshooting
 
 | Problem | Try |
 |--------|-----|
-| Stuck on “Hosting” / “Connecting” | Host runs firewall script; guest uses host’s `192.168.x.x` IP; host clicks **HOST** before guest joins |
-| Join times out | Confirm host IP, same Wi‑Fi, firewall allows UDP 7777 |
-| RPC / checksum errors in console | **Same build on both PCs** — do not mix Godot F5 with launcher; run `Play-MazeWars.bat` on both, or F5 on both |
-| Guest can’t place towers | Same build on both; guest joins `127.0.0.1` for same-PC test |
-| Creeps look stuttery on guest | Expected to improve in v0.1.4+ (smoothed movement); host view is always smoothest |
-| Host disconnected | Guest returns to main menu automatically |
-| Only one player | Solo mode uses **SOLO VS AI** instead |
+| Stuck on Connecting | Correct host IP, same network, firewall allows UDP 7777 |
+| RPC / checksum errors | **Same build on all PCs** — launcher on everyone, don’t mix F5 with export |
+| Guest can’t place towers | Same version; update to latest release |
+| Match won’t start | All players must **Ready**; need at least 2 players |
+| Dedicated server won’t start | Run from installed `MazeWars.exe` or export; check port 7777 free |
+
+## Roadmap (PRD)
+
+- **Now:** Lobby + 2–4 player FFA + dedicated server entry
+- **Next:** Balance tuning per lobby size (4 / 6 / 8 / 10)
+- **Later:** Public matchmaking queue (relay + pairing)
 
 ## Technical notes
 
-- **Port:** `7777` (UDP, ENet)
-- **Players:** 2 max (host + 1 guest)
-- **Authority:** host simulates combat, economy, waves; client sends build/upgrade/sell/send requests via RPC
-- **Autoload:** `NetworkManager` (`scripts/network/network_manager.gd`)
-
-This is an **MVP** for playtesting — not production netcode (no relay server, reconnection, or lobby browser yet).
+- **Port:** `7777` UDP (ENet)
+- **Protocol:** `NET_PROTOCOL_VERSION` in `network_manager.gd` (bump when RPCs change)
+- **Scenes:** `lobby.tscn`, `dedicated_server.tscn`, `match.tscn`
+- **Autoload:** `NetworkManager`

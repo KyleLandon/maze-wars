@@ -37,6 +37,7 @@ func _ready() -> void:
 	var all_lanes: Array = human_lanes.duplicate()
 	all_lanes.append_array(ai_lanes)
 	network.setup(self, all_lanes)
+	_refresh_lane_display_names()
 	_spawn_builder()
 	_setup_send_manager()
 	_setup_ai_brains()
@@ -45,6 +46,8 @@ func _ready() -> void:
 	GameConfig.match_start_time = Time.get_ticks_msec() / 1000.0
 	if NetworkManager.is_online():
 		NetworkManager.peer_disconnected.connect(_on_peer_disconnected)
+	if NetworkManager.is_dedicated_server:
+		$UI.visible = false
 
 
 func _exit_tree() -> void:
@@ -58,15 +61,26 @@ func _spawn_lanes() -> void:
 	ai_lanes.clear()
 
 	if NetworkManager.is_online():
-		var host_lane: LaneController = _create_lane(
-			"HostLane", Vector3.ZERO, "player", _lane_label_for_peer(1), true, 1
-		)
-		var client_lane: LaneController = _create_lane(
-			"ClientLane", Vector3(stride, 0.0, 0.0), "player_2", _lane_label_for_peer(2), true, 2
-		)
-		human_lanes = [host_lane, client_lane]
-		local_lane = host_lane if NetworkManager.is_server() else client_lane
-		opponent_lane = client_lane if NetworkManager.is_server() else host_lane
+		var player_count := NetworkManager.match_player_count
+		for i in range(player_count):
+			var lane_id := "player" if i == 0 else "player_%d" % (i + 1)
+			var offset := _online_lane_offset(i, stride)
+			var lane: LaneController = _create_lane(
+				"PlayerLane%d" % (i + 1),
+				offset,
+				lane_id,
+				_lane_label_for_index(i),
+				true,
+				i + 1
+			)
+			human_lanes.append(lane)
+		for lane in human_lanes:
+			if lane.is_local_lane():
+				local_lane = lane
+				break
+		if local_lane == null and NetworkManager.is_dedicated_server and not human_lanes.is_empty():
+			local_lane = human_lanes[0]
+		opponent_lane = null
 	else:
 		local_lane = _create_lane("PlayerLane", Vector3.ZERO, "player", "Your Lane", true, 1)
 		human_lanes = [local_lane]
@@ -106,6 +120,24 @@ func _create_lane(
 	return lane
 
 
+func _online_lane_offset(index: int, stride: float) -> Vector3:
+	if index <= 0:
+		return Vector3.ZERO
+	var slot := index - 1
+	var x := (1 if slot % 2 == 0 else -1) * ((slot >> 1) + 1) * stride
+	return Vector3(x, 0.0, 0.0)
+
+
+func _lane_label_for_index(index: int) -> String:
+	return "Player %d" % (index + 1)
+
+
+func _refresh_lane_display_names() -> void:
+	for lane in human_lanes:
+		if lane is LaneController and lane.is_local_lane():
+			lane.display_name = "Your Lane"
+
+
 func _lane_label_for_peer(peer_id: int) -> String:
 	if peer_id == NetworkManager.get_local_peer_id():
 		return "Your Lane"
@@ -122,6 +154,8 @@ func _setup_wave_coordinator() -> void:
 
 
 func _spawn_builder() -> void:
+	if NetworkManager.is_dedicated_server:
+		return
 	var builder_scene: PackedScene = preload("res://scenes/entities/builder.tscn")
 	builder = builder_scene.instantiate()
 	local_lane._entities.add_child(builder)
@@ -131,8 +165,9 @@ func _spawn_builder() -> void:
 
 func _setup_send_manager() -> void:
 	var enemy_lanes: Array = ai_lanes.duplicate()
-	if opponent_lane != null:
-		enemy_lanes.insert(0, opponent_lane)
+	for lane in human_lanes:
+		if lane != local_lane:
+			enemy_lanes.append(lane)
 	send_manager.setup(local_lane, enemy_lanes, local_lane.economy, wave_coordinator)
 
 
@@ -216,7 +251,11 @@ func _connect_signals() -> void:
 	hud.update_core_health(core.current_health, core.max_health)
 	hud.update_send_timer(-1.0)
 	if NetworkManager.is_online():
-		hud.show_message("2-player match — sends hit your opponent", BrandColors.UI_ACCENT)
+		var count := NetworkManager.match_player_count
+		if count > 2:
+			hud.show_message("%d-player FFA — sends hit all enemy lanes" % count, BrandColors.UI_ACCENT)
+		else:
+			hud.show_message("2-player match — sends hit your opponent", BrandColors.UI_ACCENT)
 
 
 func _connect_lane_network_signals(lane: LaneController) -> void:
@@ -233,6 +272,8 @@ func _connect_lane_network_signals(lane: LaneController) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if NetworkManager.is_dedicated_server:
+		return
 	if _match_over:
 		return
 	if event.is_action("show_scoreboard"):
@@ -264,6 +305,8 @@ func get_scoreboard_rows() -> Array:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if NetworkManager.is_dedicated_server:
+		return
 	if _match_over:
 		return
 	if event.is_action_pressed("ui_cancel"):
@@ -527,6 +570,14 @@ func _on_ai_send_executed(ai_lane: LaneController, package_name: String, hit_pla
 	hud.show_message("%s sent %s!" % [ai_lane.display_name, package_name], BrandColors.UI_DANGER)
 
 
+func _active_human_count() -> int:
+	var count := 0
+	for lane in human_lanes:
+		if lane is LaneController and not lane.is_eliminated:
+			count += 1
+	return count
+
+
 func _active_ai_count() -> int:
 	var count := 0
 	for lane in ai_lanes:
@@ -557,12 +608,35 @@ func _on_undo_requested() -> void:
 
 
 func _on_local_lane_defeat() -> void:
+	if NetworkManager.is_online():
+		if NetworkManager.is_server():
+			_check_ffa_winner()
+			if _active_human_count() > 1:
+				hud.show_message("You were eliminated!", BrandColors.UI_DANGER)
+				return
+		_end_match(false)
+		return
 	_end_match(false)
 
 
 func _on_opponent_defeat() -> void:
-	if NetworkManager.is_online():
-		_end_match(true)
+	if not NetworkManager.is_online():
+		return
+	if NetworkManager.is_server():
+		_check_ffa_winner()
+
+
+func _check_ffa_winner() -> void:
+	if _match_over:
+		return
+	var survivors: Array = []
+	for lane in human_lanes:
+		if lane is LaneController and not lane.is_eliminated:
+			survivors.append(lane)
+	if survivors.size() == 1:
+		_end_match(survivors[0] == local_lane)
+	elif survivors.is_empty():
+		_end_match(false, true)
 
 
 func _on_peer_disconnected(_peer_id: int) -> void:
@@ -577,16 +651,23 @@ func _end_match(victory: bool, mutual: bool = false) -> void:
 		return
 	var stats := _build_match_stats(victory)
 	if NetworkManager.is_online() and NetworkManager.is_server():
-		var winner_peer_id := 0
-		if mutual:
-			winner_peer_id = 0
-		elif victory:
-			winner_peer_id = NetworkManager.get_local_peer_id()
-		elif opponent_lane != null:
-			winner_peer_id = opponent_lane.control_peer_id
+		var winner_peer_id := _resolve_winner_peer_id(victory, mutual)
 		network.on_match_end(winner_peer_id, stats)
 	var local_victory := victory if not mutual else true
 	_show_match_end(local_victory, stats)
+
+
+func _resolve_winner_peer_id(victory: bool, mutual: bool) -> int:
+	if mutual:
+		return 0
+	if victory:
+		return NetworkManager.get_local_peer_id()
+	for lane in human_lanes:
+		if lane is LaneController and not lane.is_eliminated:
+			return lane.control_peer_id
+	if opponent_lane != null:
+		return opponent_lane.control_peer_id
+	return 0
 
 
 func _show_match_end(victory: bool, stats: Dictionary) -> void:
@@ -626,6 +707,6 @@ func _all_creeps_cleared() -> bool:
 
 func _restart_match() -> void:
 	if NetworkManager.is_online():
-		NetworkManager.begin_online_match()
+		NetworkManager.return_to_lobby()
 	else:
 		get_tree().reload_current_scene()

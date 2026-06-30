@@ -35,7 +35,7 @@ func _ready() -> void:
 	update_button.text = "UPDATE AVAILABLE"
 	address_input.text = _default_lan_address()
 	address_input.placeholder_text = "Host IP address"
-	status_label.text = "Solo vs AI, or 2-player LAN (v%s)" % GameVersion.version_label
+	status_label.text = "Solo vs AI, or 2–4 player FFA lobby (v%s)" % GameVersion.version_label
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Panel/Margin/VBox/VersionLabel.text = "v%s" % GameVersion.version_label
 	NetworkManager.lobby_status_changed.connect(_on_lobby_status_changed)
@@ -66,6 +66,8 @@ func _on_host_pressed() -> void:
 		host_button.disabled = false
 		join_button.disabled = false
 		solo_button.disabled = false
+		return
+	NetworkManager.enter_lobby()
 
 
 func _on_join_pressed() -> void:

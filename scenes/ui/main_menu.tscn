@@ -77,7 +77,7 @@ text = "SOLO VS AI"
 
 [node name="HostButton" type="Button" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "HOST LAN GAME"
+text = "HOST LOBBY"
 
 [node name="AddressRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
@@ -96,7 +96,7 @@ text = "127.0.0.1"
 
 [node name="JoinButton" type="Button" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "JOIN LAN GAME"
+text = "JOIN LOBBY"
 
 [node name="VersionLabel" type="Label" parent="Panel/Margin/VBox"]
 layout_mode = 2
