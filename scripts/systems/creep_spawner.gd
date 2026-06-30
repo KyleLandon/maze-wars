@@ -47,7 +47,12 @@ func spawn_wave(wave_data: Dictionary) -> void:
 		_spawn_creep(creep_id)
 		if interval > 0.0 and i < count - 1:
 			await get_tree().create_timer(interval).timeout
-	for extra: Dictionary in wave_data.get("extras", []):
+	var extras: Variant = wave_data.get("extras", [])
+	if extras == null or not extras is Array:
+		extras = []
+	for extra in extras:
+		if not extra is Dictionary:
+			continue
 		var e_count: int = int(extra.get("count", 1))
 		var e_interval: float = float(extra.get("interval", 0.5))
 		for j in e_count:

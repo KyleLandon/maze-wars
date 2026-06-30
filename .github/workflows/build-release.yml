@@ -51,9 +51,28 @@ jobs:
           allowUpdates: true
           makeLatest: true
           name: Latest Build
-          prerelease: true
+          prerelease: false
           body: |
             Auto-built from `${{ github.sha }}` on `${{ github.ref_name }}`.
-            Your girlfriend's launcher checks this release and downloads `MazeWars-win64.zip`.
+            Launcher: `MazeWars-win64.zip` · itch.io channel: `windows`
           artifacts: MazeWars-win64.zip
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "ITCH_API_KEY secret not set — skipping itch.io upload."
+            exit 0
+          fi
+          TARGET=$(tr -d '[:space:]' < tools/itch/target.txt)
+          if echo "$TARGET" | grep -qi "YOUR_"; then
+            echo "Set tools/itch/target.txt before pushing to itch.io."
+            exit 0
+          fi
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          ./butler -V
+          ./butler push build "$TARGET" --userversion-file build/version.txt

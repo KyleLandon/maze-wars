@@ -103,6 +103,11 @@ layout_mode = 2
 text = "v0.1.0"
 horizontal_alignment = 1
 
+[node name="UpdateButton" type="Button" parent="Panel/Margin/VBox"]
+visible = false
+layout_mode = 2
+text = "UPDATE AVAILABLE"
+
 [node name="QuitButton" type="Button" parent="Panel/Margin/VBox"]
 layout_mode = 2
 text = "QUIT"
@@ -110,4 +115,5 @@ text = "QUIT"
 [connection signal="pressed" from="Panel/Margin/VBox/SoloButton" to="." method="_on_solo_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/HostButton" to="." method="_on_host_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/JoinButton" to="." method="_on_join_pressed"]
+[connection signal="pressed" from="Panel/Margin/VBox/UpdateButton" to="." method="_on_update_pressed"]
 [connection signal="pressed" from="Panel/Margin/VBox/QuitButton" to="." method="_on_quit_pressed"]

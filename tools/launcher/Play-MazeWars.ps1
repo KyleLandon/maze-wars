@@ -7,8 +7,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $ConfigPath = Join-Path $ScriptDir "config.json"
+
+Write-Host "Maze Wars launcher starting..." -ForegroundColor Cyan
+Write-Host "Folder: $ScriptDir"
 
 if (-not (Test-Path $ConfigPath)) {
     Write-Host "Missing config.json next to the launcher." -ForegroundColor Red
@@ -52,14 +55,28 @@ function Save-LocalVersion([string]$Version) {
 }
 
 function Get-LatestRelease {
-    $api = "https://api.github.com/repos/$owner/$repo/releases/latest"
+    $headers = @{ "User-Agent" = "MazeWars-Launcher" }
+    $apiLatest = "https://api.github.com/repos/$owner/$repo/releases/latest"
     Write-Status "Checking for updates..."
     try {
-        return Invoke-RestMethod -Uri $api -Headers @{ "User-Agent" = "MazeWars-Launcher" }
+        return Invoke-RestMethod -Uri $apiLatest -Headers $headers
     }
     catch {
-        throw "Could not reach GitHub releases for $owner/$repo. Is the repo public and has a release been published?"
+        Write-Status "No /latest release (often pre-release) — checking all releases..."
     }
+
+    try {
+        $apiAll = "https://api.github.com/repos/$owner/$repo/releases?per_page=5"
+        $releases = @(Invoke-RestMethod -Uri $apiAll -Headers $headers)
+        if ($releases.Count -gt 0) {
+            return $releases[0]
+        }
+    }
+    catch {
+        # Fall through to error below.
+    }
+
+    throw "Could not reach GitHub releases for $owner/$repo. Check the repo is public and a release exists with $assetName."
 }
 
 function Get-ReleaseAsset($Release) {
@@ -100,6 +117,14 @@ function Download-And-Install($Asset, [string]$RemoteVersion) {
 
     Save-LocalVersion $RemoteVersion
     Write-Status "Installed version $RemoteVersion"
+    Write-UpdaterShortcut
+}
+
+function Write-UpdaterShortcut {
+    $launcherPs1 = $PSCommandPath
+    $batPath = Join-Path $InstallRoot "UpdateAndRestart.bat"
+    $content = "@echo off`r`ntitle Maze Wars Updater`r`npowershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPs1`"`r`n"
+    Set-Content -Path $batPath -Value $content -Encoding ASCII
 }
 
 try {
@@ -119,6 +144,7 @@ try {
     }
     else {
         Write-Status "Already up to date ($localVersion)."
+        Write-UpdaterShortcut
     }
 
     if (-not (Test-Path $GameExe)) {
@@ -127,15 +153,19 @@ try {
 
     Write-Status "Launching Maze Wars..."
     Start-Process -FilePath $GameExe -WorkingDirectory $InstallRoot
+    Write-Status "Game started."
 }
 catch {
     Write-Host ""
-    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.ScriptStackTrace) {
+        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+    }
     Write-Host ""
-    Write-Host "Tips:"
-    Write-Host "  - Make sure you pushed to GitHub and the build workflow finished."
-    Write-Host "  - The repo must be public (or use a GitHub token — not set up yet)."
-    Write-Host "  - config.json must have the correct github_owner and github_repo."
-    Read-Host "Press Enter to exit"
+    Write-Host "Common fixes:"
+    Write-Host "  - Extract the whole launcher folder (do not run from inside a zip)."
+    Write-Host "  - Keep Play-MazeWars.bat, Play-MazeWars.ps1, and config.json together."
+    Write-Host "  - Ask Kyle to confirm GitHub has a release with MazeWars-win64.zip."
+    Write-Host "  - Repo: https://github.com/$owner/$repo/releases"
     exit 1
 }

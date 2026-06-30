@@ -33,6 +33,7 @@ const SELECT_DRAG_THRESHOLD := 8.0
 func _ready() -> void:
 	LaneCoords.load_from_config()
 	_spawn_lanes()
+	_setup_wave_coordinator()
 	network = MatchNetworkScript.new()
 	network.name = "MatchNetwork"
 	add_child(network)
@@ -40,7 +41,6 @@ func _ready() -> void:
 	var all_lanes: Array = human_lanes.duplicate()
 	all_lanes.append_array(ai_lanes)
 	network.setup(self, all_lanes)
-	_setup_wave_coordinator()
 	_spawn_builder()
 	_setup_send_manager()
 	_setup_ai_brains()

@@ -6,18 +6,22 @@ Early **2-player LAN** support for testing. The host runs the authoritative simu
 
 ### Host (you)
 
-1. Launch the game (`run_game.bat` or Play in Godot).
-2. Click **HOST LAN GAME**.
-3. Note your PC’s LAN IP (Windows: `ipconfig` → IPv4, e.g. `192.168.1.42`).
-4. Allow **UDP port 7777** through Windows Firewall when prompted (or add a rule manually).
-5. Wait for “Player connected” — the match starts automatically.
+1. Launch the game.
+2. **(Recommended)** Run `tools/network/Open-Firewall-Port.bat` as admin once — opens **UDP 7777**.
+3. Click **HOST LAN GAME**.
+4. Read the status line — it shows **your IP** (e.g. `192.168.1.42:7777`). Text or Discord that IP to your guest.
+5. Wait for “Guest connected” — the match starts automatically.
+
+**You must host first**, then she joins.
 
 ### Guest (your girlfriend)
 
-1. Launch the game on her PC (same build/version).
-2. Enter the **host IP** in the address field.
+1. Launch the game (same build as host).
+2. Type the **host’s IP** in the box (not `127.0.0.1` unless testing on the same PC).
 3. Click **JOIN LAN GAME**.
-4. The match loads when the host detects the connection.
+4. Should change to “Connected” then load the match within a few seconds.
+
+If it says **Connecting** for more than ~20 seconds, the PCs are not reaching each other (wrong IP, firewall, or not on same network).
 
 ## Controls (unchanged)
 
@@ -42,7 +46,8 @@ Alternatives if port forwarding is awkward:
 
 | Problem | Try |
 |--------|-----|
-| Join times out | Confirm host IP, same game build, firewall allows UDP 7777 |
+| Stuck on “Hosting” / “Connecting” | Host runs firewall script; guest uses host’s `192.168.x.x` IP; host clicks **HOST** before guest joins |
+| Join times out | Confirm host IP, same Wi‑Fi, firewall allows UDP 7777 |
 | Guest sees desynced creeps | Expected in early build; host is authoritative — report severe desync |
 | Host disconnected | Guest returns to main menu automatically |
 | Only one player | Solo mode uses **SOLO VS AI** instead |

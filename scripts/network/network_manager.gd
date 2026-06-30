@@ -12,10 +12,18 @@ signal lobby_status_changed(text: String)
 const DEFAULT_PORT := 7777
 const MAX_CLIENTS := 1
 const MATCH_SCENE := "res://scenes/match/match.tscn"
+const MAIN_MENU_SCENE := "res://scenes/ui/main_menu.tscn"
+const CONNECT_TIMEOUT_SEC := 20.0
+const CLIENT_LOAD_FALLBACK_SEC := 3.0
 
 var multiplayer_mode: String = "solo"
 var is_host: bool = false
 var lobby_status: String = ""
+var host_address_hint: String = ""
+
+var _connect_started_at: float = -1.0
+var _client_load_timer: float = -1.0
+var _match_loading: bool = false
 
 
 func _ready() -> void:
@@ -24,6 +32,16 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+
+func _process(delta: float) -> void:
+	if multiplayer_mode == "client" and _connect_started_at >= 0.0:
+		_poll_client_connection(delta)
+	elif multiplayer_mode == "client" and _client_load_timer >= 0.0:
+		_client_load_timer -= delta
+		if _client_load_timer <= 0.0:
+			_client_load_timer = -1.0
+			_client_load_match_fallback()
 
 
 func is_online() -> bool:
@@ -40,8 +58,16 @@ func get_local_peer_id() -> int:
 	return multiplayer.get_unique_id()
 
 
+func get_lan_ip() -> String:
+	for addr in IP.get_local_addresses():
+		if addr.contains(".") and not addr.begins_with("127."):
+			return addr
+	return "127.0.0.1"
+
+
 func host_game(port: int = DEFAULT_PORT) -> Error:
 	disconnect_game()
+	_match_loading = false
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(port, MAX_CLIENTS)
 	if err != OK:
@@ -50,31 +76,47 @@ func host_game(port: int = DEFAULT_PORT) -> Error:
 	multiplayer.multiplayer_peer = peer
 	multiplayer_mode = "host"
 	is_host = true
+	host_address_hint = get_lan_ip()
+	_try_upnp_port(port)
 	server_started.emit()
-	_set_status("Hosting on port %d — waiting for player..." % port)
+	_set_status(
+		"HOSTING on %s:%d\nGive guest this IP, then wait.\nAllow firewall if Windows asks." % [
+			host_address_hint, port
+		]
+	)
 	return OK
 
 
 func join_game(address: String, port: int = DEFAULT_PORT) -> Error:
 	disconnect_game()
+	_match_loading = false
+	var trimmed := address.strip_edges()
+	if trimmed.is_empty():
+		_set_status("Enter the host IP address first.")
+		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(address.strip_edges(), port)
+	var err := peer.create_client(trimmed, port)
 	if err != OK:
-		_set_status("Failed to connect to %s:%d" % [address, port])
+		_set_status("Failed to connect to %s:%d" % [trimmed, port])
 		return err
 	multiplayer.multiplayer_peer = peer
 	multiplayer_mode = "client"
 	is_host = false
-	_set_status("Connecting to %s:%d..." % [address, port])
+	_connect_started_at = Time.get_ticks_msec() / 1000.0
+	_set_status("Connecting to %s:%d ..." % [trimmed, port])
 	return OK
 
 
 func disconnect_game() -> void:
+	_connect_started_at = -1.0
+	_client_load_timer = -1.0
+	_match_loading = false
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
 	multiplayer_mode = "solo"
 	is_host = false
+	host_address_hint = ""
 	_set_status("")
 
 
@@ -84,19 +126,53 @@ func start_solo() -> void:
 
 
 func begin_online_match() -> void:
-	if not is_online():
+	if not is_online() or _match_loading:
 		return
-	rpc("rpc_load_match")
+	if not multiplayer.is_server():
+		return
+	_match_loading = true
+	rpc_load_match.rpc()
 
 
-@rpc("call_local", "reliable")
+@rpc("authority", "call_local", "reliable")
 func rpc_load_match() -> void:
+	if get_tree().current_scene == null:
+		return
+	var path := get_tree().current_scene.scene_file_path
+	if path == MATCH_SCENE:
+		return
 	get_tree().change_scene_to_file(MATCH_SCENE)
+
+
+func _poll_client_connection(_delta: float) -> void:
+	var peer := multiplayer.multiplayer_peer
+	if peer == null:
+		return
+	var status: int = peer.get_connection_status()
+	if status == MultiplayerPeer.CONNECTION_CONNECTED:
+		_connect_started_at = -1.0
+		return
+	if status == MultiplayerPeer.CONNECTION_DISCONNECTED:
+		_fail_connection("Disconnected before the match could start.")
+		return
+	var elapsed := Time.get_ticks_msec() / 1000.0 - _connect_started_at
+	if elapsed >= CONNECT_TIMEOUT_SEC:
+		_fail_connection(
+			"Connection timed out.\nCheck host IP, same Wi‑Fi, and host firewall (UDP %d)." % DEFAULT_PORT
+		)
+
+
+func _fail_connection(message: String) -> void:
+	_connect_started_at = -1.0
+	_client_load_timer = -1.0
+	disconnect_game()
+	_set_status(message)
+	connection_failed.emit()
 
 
 func _on_peer_connected(peer_id: int) -> void:
 	peer_connected.emit(peer_id)
-	_set_status("Player connected (%d). Starting match..." % peer_id)
+	_set_status("Guest connected (%d). Starting match..." % peer_id)
 	if is_server():
 		call_deferred("begin_online_match")
 
@@ -108,20 +184,40 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	connected_to_server.emit()
-	_set_status("Connected. Waiting for host...")
+	_connect_started_at = -1.0
+	_set_status("Connected. Waiting for host to start...")
+	_client_load_timer = CLIENT_LOAD_FALLBACK_SEC
+
+
+func _client_load_match_fallback() -> void:
+	if multiplayer_mode != "client" or _match_loading:
+		return
+	if get_tree().current_scene == null:
+		return
+	if get_tree().current_scene.scene_file_path == MATCH_SCENE:
+		return
+	_match_loading = true
+	_set_status("Starting match...")
+	get_tree().change_scene_to_file(MATCH_SCENE)
 
 
 func _on_connection_failed() -> void:
-	connection_failed.emit()
-	disconnect_game()
-	_set_status("Connection failed")
+	_fail_connection("Connection failed. Check IP and firewall.")
 
 
 func _on_server_disconnected() -> void:
 	disconnect_game()
 	_set_status("Disconnected from host")
 	if get_tree().current_scene != null:
-		get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+
+func _try_upnp_port(port: int) -> void:
+	if not ClassDB.class_exists("UPNP"):
+		return
+	var upnp: UPNP = UPNP.new()
+	upnp.discover()
+	upnp.add_port_mapping(port, port, "Maze Wars", "UDP")
 
 
 func _set_status(text: String) -> void:

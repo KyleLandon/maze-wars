@@ -188,7 +188,12 @@ func get_cell_from_ray(origin: Vector3, direction: Vector3) -> Vector2i:
 
 
 func spawn_send_package(pkg: Dictionary) -> void:
-	for entry: Dictionary in pkg.get("contents", []):
+	var contents: Variant = pkg.get("contents", [])
+	if contents == null or not contents is Array:
+		contents = []
+	for entry in contents:
+		if not entry is Dictionary:
+			continue
 		var wave_data := {
 			"creep": entry.get("creep", "grunt"),
 			"count": entry.get("count", 1),

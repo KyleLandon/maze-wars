@@ -56,7 +56,8 @@ func _start_next_wave() -> void:
 		return
 	_spawning = true
 	current_wave_index += 1
-	var wave_data: Dictionary = waves[current_wave_index]
+	var raw_wave: Variant = waves[current_wave_index]
+	var wave_data: Dictionary = raw_wave if raw_wave is Dictionary else {}
 	var wave_number := current_wave_index + 1
 	wave_started.emit(wave_number, wave_data)
 	for lane in _active_lanes():
@@ -70,7 +71,9 @@ func _start_next_wave() -> void:
 
 func _emit_preview(index: int) -> void:
 	if index < waves.size():
-		wave_preview.emit(index + 1, waves[index])
+		var raw_wave: Variant = waves[index]
+		var wave_data: Dictionary = raw_wave if raw_wave is Dictionary else {}
+		wave_preview.emit(index + 1, wave_data)
 
 
 func force_start_wave() -> void:

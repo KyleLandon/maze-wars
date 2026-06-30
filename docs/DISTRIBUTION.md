@@ -1,40 +1,86 @@
 # Distribution & auto-update
 
-Ship builds to your girlfriend via **GitHub Releases** + a small **Windows launcher** that downloads and updates automatically.
+Ship builds via **GitHub Releases** (launcher) and **itch.io** (itch app auto-updates). The main menu shows an **UPDATE AVAILABLE** button when a newer GitHub build exists.
 
 ## Overview
 
 | Piece | Purpose |
 |-------|---------|
-| `version.json` | Version you bump when you want a named release |
-| `.github/workflows/build-release.yml` | Builds Windows `.exe`, zips it, publishes to GitHub Releases |
-| `tools/launcher/Play-MazeWars.bat` | What she double-clicks — checks for updates, installs, runs |
+| `version.json` | Display version; bump when you want |
+| `distribution.json` | GitHub + itch URLs (read by game at runtime) |
+| `.github/workflows/build-release.yml` | Build → GitHub Release + itch.io `windows` channel |
+| `tools/launcher/Play-MazeWars.bat` | GitHub launcher — download, update, play |
+| **itch.io app** | Install once; updates automatically when you push |
+| **In-game button** | Main menu checks GitHub; opens launcher or itch to update |
 
-Every push to **`main`** rebuilds and updates the **`latest`** release on GitHub.
+Every push to **`main`** rebuilds and publishes to both (itch requires API key — see below).
 
-## One-time setup (you)
+---
 
-### 1. Create the GitHub repo
+## itch.io setup (recommended for your girlfriend)
 
-```powershell
-cd "k:\Maze Wars"
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/kylelandon/maze-wars.git
-git push -u origin main
+The [itch.io app](https://itch.io/app) handles download + auto-update with no batch files.
+
+### 1. Create the itch page
+
+1. Go to [itch.io](https://itch.io) → **Dashboard** → **Create new project**
+2. Kind: **Game** · Platform: **Windows**
+3. Set URL slug (e.g. `maze-wars`) → page becomes `https://YOUR_NAME.itch.io/maze-wars`
+
+### 2. Configure the repo
+
+Edit `tools/itch/target.txt` (one line):
+
+```
+YOUR_ITCH_USERNAME/maze-wars:windows
 ```
 
-Use a **public** repo so the launcher can download releases without a token.
-
-### 2. Configure the launcher
-
-Edit `tools/launcher/config.json`:
+Edit `distribution.json`:
 
 ```json
 {
-  "github_owner": "YOUR_GITHUB_USERNAME",
+  "github_owner": "kylelandon",
+  "github_repo": "maze-wars",
+  "itch_url": "https://YOUR_NAME.itch.io/maze-wars",
+  "itch_target": "YOUR_NAME/maze-wars:windows"
+}
+```
+
+### 3. Add GitHub secret
+
+1. itch.io → **Account settings** → **API keys** → Generate
+2. GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+3. New secret: `ITCH_API_KEY` = your itch API key
+
+After the next push to `main`, the workflow uploads to the `windows` channel.
+
+### 4. Her install (one time)
+
+1. Install the **itch.io desktop app**
+2. Open your game page → **Download** / **Install**
+3. Launch from her itch **Library**
+
+When you push updates, the itch app prompts to update — no launcher needed.
+
+### Manual itch push (optional)
+
+```powershell
+butler login
+godot --headless --export-release "Windows Desktop" build/MazeWars.exe
+.\tools\itch\push-local.ps1
+```
+
+---
+
+## GitHub launcher (alternative)
+
+### Configure launcher
+
+`tools/launcher/config.json`:
+
+```json
+{
+  "github_owner": "kylelandon",
   "github_repo": "maze-wars",
   "asset_name": "MazeWars-win64.zip",
   "executable": "MazeWars.exe",
@@ -42,81 +88,50 @@ Edit `tools/launcher/config.json`:
 }
 ```
 
-### 3. Wait for the first build
+Send her `tools/launcher/` — she double-clicks **`Play-MazeWars.bat`**.
 
-After pushing to `main`:
+The launcher writes `UpdateAndRestart.bat` next to the game. The in-game **UPDATE AVAILABLE** button runs that script.
 
-1. Open GitHub → **Actions** → wait for **Build Windows Release** to finish.
-2. Open **Releases** — you should see **Latest Build** with `MazeWars-win64.zip`.
+---
 
-You can also trigger a build manually: **Actions** → **Build Windows Release** → **Run workflow**.
+## GitHub Actions (what “wait for the build” means)
 
-### 4. Give her the launcher (once)
+After `git push` to `main`:
 
-Zip and send **only** the launcher folder:
+1. Open `https://github.com/kylelandon/maze-wars/actions`
+2. Click the top **Build Windows Release** run
+3. Wait for a **green checkmark** (~2–5 min)
+4. Check **Releases** for `MazeWars-win64.zip`
 
-```
-tools/launcher/
-  Play-MazeWars.bat      ← she double-clicks this
-  Play-MazeWars.ps1
-  config.json            ← with your repo filled in
-```
+---
 
-She does **not** need Godot installed. The game installs to:
+## In-game “Update available” button
 
-`%LOCALAPPDATA%\MazeWars\`
+On the main menu, the game checks GitHub’s latest release in the background.
 
-## Her workflow
+- If `build/version.txt` (next to the `.exe`) is older than the latest release → **UPDATE AVAILABLE** appears
+- Clicking it:
+  1. Runs `UpdateAndRestart.bat` (GitHub launcher install), **or**
+  2. Opens your **itch.io page** if no launcher is present
 
-1. Double-click **`Play-MazeWars.bat`**
-2. Launcher checks GitHub for the newest build
-3. Downloads / updates if needed
-4. Starts the game
+Works for exported builds only (not when running from the Godot editor).
 
-Next time you push to `main`, she runs the same `.bat` and gets the new build automatically.
+---
 
 ## Your workflow
 
-1. Make changes locally
-2. Optionally bump `version.json` (for display in the main menu)
-3. Commit and push to `main`
-4. GitHub Actions builds and updates the release (1–3 minutes)
-5. Tell her to run the launcher again (or she can just run it — it always checks)
+1. Change code · bump `version.json` if you want
+2. `git push` to `main`
+3. Wait for Actions to finish
+4. She gets the update via **itch app** (automatic) or **Play-MazeWars.bat** (manual check)
 
-### Manual version bump
-
-`version.json`:
-
-```json
-{
-  "version": "0.1.1",
-  "display_name": "0.1.1"
-}
-```
-
-Also set in Godot **Project → Project Settings → Application → Config → Version** (`project.godot` → `config/version`).
-
-## Local export (optional)
-
-If you want to test the exported `.exe` on your machine:
-
-```powershell
-# Godot 4.7 on PATH, or use full path like run_game.bat
-godot --headless --export-release "Windows Desktop" build/MazeWars.exe
-```
+---
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Launcher says repo not found | Check `config.json` owner/repo spelling; repo must be **public** |
-| No release yet | Push to `main` or run workflow manually; check **Actions** tab for errors |
-| Windows blocks script | She should use `.bat`, not `.ps1` directly (bypasses execution policy) |
-| Firewall / antivirus | Allow download from `github.com` |
-| Private repo | Needs a GitHub token in the launcher (not implemented — use public repo for now) |
-
-## Future improvements
-
-- Private repo support (read-only GitHub token in config)
-- itch.io butler channel (built-in updater app)
-- In-game “Update available” button that opens the launcher
+| itch upload skipped in Actions | Add `ITCH_API_KEY` secret; fix `tools/itch/target.txt` |
+| No UPDATE button in game | Only in exported `.exe`; needs internet; compare `version.txt` vs GitHub |
+| Update button does nothing | Run `Play-MazeWars.bat` once so `UpdateAndRestart.bat` is created |
+| itch game won’t update | She must use the **itch app**, not a copied `.exe` |

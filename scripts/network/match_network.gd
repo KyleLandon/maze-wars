@@ -12,6 +12,21 @@ var _sync_timer: float = 0.0
 var _client_mirror: bool = false
 
 
+static func _dict_from_variant(value: Variant) -> Dictionary:
+	return value if value is Dictionary else {}
+
+
+static func _json_to_dict(json_text: String) -> Dictionary:
+	if json_text.is_empty():
+		return {}
+	var parsed: Variant = JSON.parse_string(json_text)
+	return parsed if parsed is Dictionary else {}
+
+
+static func _dict_to_json(data: Dictionary) -> String:
+	return JSON.stringify(data)
+
+
 func setup(match_root: Node3D, lanes: Array) -> void:
 	_match = match_root
 	_lanes_by_id.clear()
@@ -155,7 +170,7 @@ func _apply_place(lane, cell: Vector2i, tower_id: String, broadcast: bool) -> vo
 	if lane.is_local_lane():
 		_match._on_placement_result(result.get("success", false), str(result.get("reason", "")))
 	if result.get("success", false) and broadcast:
-		rpc("rpc_sync_tower_placed", lane.lane_id, tower_id, cell.x, cell.y)
+		rpc_sync_tower_placed.rpc(lane.lane_id, tower_id, cell.x, cell.y)
 
 
 func _apply_upgrade_for_peer(peer_id: int) -> void:
@@ -170,7 +185,13 @@ func _apply_upgrade_for_peer(peer_id: int) -> void:
 	for tower in before:
 		if is_instance_valid(tower) and tower.has_method("get_undo_snapshot"):
 			var snapshot: Dictionary = tower.get_undo_snapshot()
-			rpc("rpc_sync_tower_state", lane.lane_id, snapshot.grid_cell.x, snapshot.grid_cell.y, snapshot)
+			var cell: Vector2i = snapshot.get("grid_cell", Vector2i.ZERO)
+			rpc_sync_tower_state.rpc(
+				lane.lane_id,
+				cell.x,
+				cell.y,
+				_dict_to_json(snapshot)
+			)
 
 
 func _apply_sell_for_peer(peer_id: int) -> void:
@@ -186,7 +207,7 @@ func _apply_sell_for_peer(peer_id: int) -> void:
 		_match._refresh_local_tower_ui()
 	_broadcast_lane_economy(lane)
 	for cell in sold_cells:
-		rpc("rpc_sync_tower_sold", lane.lane_id, cell.x, cell.y)
+		rpc_sync_tower_sold.rpc(lane.lane_id, cell.x, cell.y)
 
 
 func _apply_send_for_peer(peer_id: int, package_id: String) -> void:
@@ -204,17 +225,17 @@ func _apply_send_for_peer(peer_id: int, package_id: String) -> void:
 		_match.hud.update_economy(lane.economy.gold, lane.economy.income)
 	_broadcast_lane_economy(lane)
 	if result.get("success", false):
-		var pkg: Dictionary = result.get("package", {})
+		var pkg: Dictionary = _dict_from_variant(result.get("package", {}))
 		for target in targets:
 			if target.is_eliminated:
 				continue
-			rpc("rpc_sync_send_package", target.lane_id, pkg)
+			rpc_sync_send_package.rpc(target.lane_id, _dict_to_json(pkg))
 
 
 func on_wave_started(wave_number: int, wave_data: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return
-	rpc("rpc_sync_wave_started", wave_number, wave_data)
+	rpc_sync_wave_started.rpc(wave_number, _dict_to_json(wave_data))
 
 
 func on_economy_changed(lane) -> void:
@@ -226,8 +247,7 @@ func on_economy_changed(lane) -> void:
 func on_core_health_changed(lane) -> void:
 	if not multiplayer.is_server() or lane == null:
 		return
-	rpc(
-		"rpc_sync_core_health",
+	rpc_sync_core_health.rpc(
 		lane.lane_id,
 		lane.core.current_health,
 		lane.core.max_health
@@ -237,23 +257,23 @@ func on_core_health_changed(lane) -> void:
 func on_creep_spawned(lane, creep: Node, net_id: int) -> void:
 	if not multiplayer.is_server() or lane == null or creep == null:
 		return
-	rpc("rpc_spawn_network_creep", lane.lane_id, net_id, creep.creep_id)
+	rpc_spawn_network_creep.rpc(lane.lane_id, net_id, creep.creep_id)
 
 
 func on_creep_removed(lane, net_id: int) -> void:
 	if not multiplayer.is_server() or lane == null:
 		return
-	rpc("rpc_despawn_network_creep", lane.lane_id, net_id)
+	rpc_despawn_network_creep.rpc(lane.lane_id, net_id)
 
 
 func on_match_end(victory: bool, stats: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return
-	rpc("rpc_sync_match_end", victory, stats)
+	rpc_sync_match_end.rpc(victory, _dict_to_json(stats))
 
 
 func _broadcast_lane_economy(lane) -> void:
-	rpc("rpc_sync_economy", lane.lane_id, lane.economy.gold, lane.economy.income)
+	rpc_sync_economy.rpc(lane.lane_id, lane.economy.gold, lane.economy.income)
 
 
 func _broadcast_creep_states() -> void:
@@ -263,7 +283,7 @@ func _broadcast_creep_states() -> void:
 		var packed: PackedFloat32Array = lane.creep_spawner.pack_network_states()
 		if packed.is_empty():
 			continue
-		rpc("rpc_sync_creep_states", lane.lane_id, packed)
+		rpc_sync_creep_states.rpc(lane.lane_id, packed)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -276,12 +296,12 @@ func rpc_sync_tower_placed(lane_id: String, tower_id: String, cx: int, cy: int) 
 
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_sync_tower_state(lane_id: String, cx: int, cy: int, info: Dictionary) -> void:
+func rpc_sync_tower_state(lane_id: String, cx: int, cy: int, info_json: String) -> void:
 	if multiplayer.is_server():
 		return
 	var lane = lane_by_id(lane_id)
 	if lane:
-		lane.tower_manager.apply_remote_tower_state(Vector2i(cx, cy), info)
+		lane.tower_manager.apply_remote_tower_state(Vector2i(cx, cy), _json_to_dict(info_json))
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -316,19 +336,20 @@ func rpc_sync_core_health(lane_id: String, current: int, max_hp: int) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_sync_wave_started(wave_number: int, wave_data: Dictionary) -> void:
+func rpc_sync_wave_started(wave_number: int, wave_data_json: String) -> void:
 	if multiplayer.is_server():
 		return
+	var wave_data := _json_to_dict(wave_data_json)
 	_match._on_wave_started(wave_number, wave_data)
 
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_sync_send_package(lane_id: String, pkg: Dictionary) -> void:
+func rpc_sync_send_package(lane_id: String, pkg_json: String) -> void:
 	if multiplayer.is_server():
 		return
 	var lane = lane_by_id(lane_id)
 	if lane:
-		lane.spawn_send_package(pkg)
+		lane.spawn_send_package(_json_to_dict(pkg_json))
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -359,7 +380,7 @@ func rpc_despawn_network_creep(lane_id: String, net_id: int) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func rpc_sync_match_end(victory: bool, stats: Dictionary) -> void:
+func rpc_sync_match_end(victory: bool, stats_json: String) -> void:
 	if multiplayer.is_server():
 		return
-	_match._show_match_end(victory, stats)
+	_match._show_match_end(victory, _json_to_dict(stats_json))
