@@ -118,7 +118,7 @@ func host_game(port: int = DEFAULT_PORT) -> Error:
 	multiplayer.multiplayer_peer = peer
 	multiplayer_mode = "host"
 	is_host = true
-	host_address_hint = get_lan_ip()
+	host_address_hint = GameConfig.get_server_address_hint()
 	_try_upnp_port(port)
 	server_started.emit()
 	if is_dedicated_server:
@@ -137,8 +137,12 @@ func join_game(address: String, port: int = DEFAULT_PORT) -> Error:
 	_match_loading = false
 	var trimmed := address.strip_edges()
 	if trimmed.is_empty():
+		trimmed = GameConfig.get_default_server_address()
+	if trimmed.is_empty():
 		_set_status("Enter the server IP address first.")
 		return ERR_INVALID_PARAMETER
+	if port == DEFAULT_PORT and GameConfig.get_configured_server_port() != DEFAULT_PORT:
+		port = GameConfig.get_configured_server_port()
 	GameConfig.set_last_server_address(trimmed)
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_client(trimmed, port)

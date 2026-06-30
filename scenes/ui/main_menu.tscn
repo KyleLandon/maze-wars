@@ -97,6 +97,12 @@ layout_mode = 2
 text = "JOIN A QUEUE"
 horizontal_alignment = 1
 
+[node name="ServerHintLabel" type="Label" parent="Panel/Margin/VBox/JoinSection"]
+layout_mode = 2
+text = "Server address"
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="AddressRow" type="HBoxContainer" parent="Panel/Margin/VBox/JoinSection"]
 layout_mode = 2
 theme_override_constants/separation = 8

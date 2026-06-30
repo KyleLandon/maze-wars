@@ -91,12 +91,13 @@ func _log(message: String) -> void:
 
 
 func _refresh_ui() -> void:
-	var host_ip := str(NetworkManager.host_address_hint)
-	if host_ip.is_empty():
-		host_ip = "starting..."
-	address_label.text = "Address: %s:%d  ·  Uptime: %s" % [
-		host_ip,
-		NetworkManager.DEFAULT_PORT,
+	var join_addr := GameConfig.get_server_address_hint()
+	if join_addr.is_empty():
+		join_addr = "starting..."
+	var port := GameConfig.get_configured_server_port()
+	address_label.text = "Players join: %s:%d  ·  Uptime: %s" % [
+		join_addr,
+		port,
 		_format_duration(Time.get_ticks_msec() / 1000.0 - _started_at),
 	]
 	if _phase == "match":

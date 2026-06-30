@@ -13,14 +13,16 @@ Online **FFA lobby** aligned with PRD MVP 3: up to **4 players**, host-authorita
 5. Everyone clicks **READY UP**.
 6. **Host** clicks **START MATCH** when all players are ready (minimum **2**).
 
-### Option B — Dedicated server on your PC
+### Option B — Dedicated server (static IP)
 
-1. Run `tools/network/Run-Dedicated-Server.bat` (or `MazeWars.exe --dedicated-server`).
-2. A **server dashboard** window opens (not the 3D game). It shows IP, connected players, and live match stats.
-3. Players **JOIN LOBBY** with that IP from the normal game client.
-4. When **all connected players are ready**, the server auto-starts the match in the background.
+The default server address is in **`config/network.json`** (currently `192.168.4.24`).
 
-Use a cheap VPS the same way if you port-forward **UDP 7777** (or run on the VPS public IP).
+1. Set your server PC to that **fixed LAN IP** — see `tools/network/STATIC-SERVER-IP.md`.
+2. Run `tools/network/Run-Dedicated-Server.bat`.
+3. Dashboard shows **Players join: 192.168.4.24:7777**.
+4. Clients launch the game → **JOIN QUEUE** (address is pre-filled).
+
+Change `default_server_address` in `config/network.json`, then release a new build so all clients pick it up.
 
 ## Lobby rules
 

@@ -4,6 +4,7 @@ extends Control
 
 @onready var panel: PanelContainer = $Panel
 @onready var status_label: Label = $Panel/Margin/VBox/StatusLabel
+@onready var server_hint_label: Label = $Panel/Margin/VBox/JoinSection/ServerHintLabel
 @onready var address_input: LineEdit = $Panel/Margin/VBox/JoinSection/AddressRow/AddressInput
 @onready var solo_button: Button = $Panel/Margin/VBox/SoloButton
 @onready var host_button: Button = $Panel/Margin/VBox/HostSection/HostButton
@@ -21,6 +22,7 @@ func _ready() -> void:
 	$Panel/Margin/VBox/SubtitleLabel.text = "Tower defense lane wars"
 	UIStyles.style_label($Panel/Margin/VBox/HostSection/HostLabel, "muted")
 	UIStyles.style_label($Panel/Margin/VBox/JoinSection/JoinLabel, "muted")
+	UIStyles.style_label(server_hint_label, "muted")
 	UIStyles.style_label(status_label, "muted")
 	UIStyles.style_label($Panel/Margin/VBox/VersionLabel, "muted")
 	$Panel/Margin/VBox/VersionLabel.add_theme_font_size_override("font_size", 11)
@@ -32,18 +34,35 @@ func _ready() -> void:
 	UIStyles.style_button(quit_button, "ghost")
 	update_button.visible = false
 	update_button.text = "UPDATE AVAILABLE"
-	address_input.text = GameConfig.get_last_server_address()
-	address_input.placeholder_text = "e.g. 192.168.1.42"
+	GameConfig.load_settings()
+	_setup_join_section()
 	status_label.text = "Solo vs AI, or join a 2-4 player queue (v%s)" % GameVersion.version_label
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	$Panel/Margin/VBox/VersionLabel.text = "v%s" % GameVersion.version_label
 	NetworkManager.lobby_status_changed.connect(_on_lobby_status_changed)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
 	NetworkManager.connected_to_server.connect(_on_connected_to_server)
-	GameConfig.load_settings()
-	address_input.text = GameConfig.get_last_server_address()
 	UpdateChecker.update_available.connect(_on_update_available)
 	UpdateChecker.check_for_updates()
+
+
+func _setup_join_section() -> void:
+	var default_addr := GameConfig.get_default_server_address()
+	var join_addr := GameConfig.get_join_server_address()
+	address_input.text = join_addr
+	if GameConfig.has_default_server():
+		var port := GameConfig.get_configured_server_port()
+		server_hint_label.text = "%s — %s:%d" % [
+			GameConfig.get_server_display_name(),
+			default_addr,
+			port,
+		]
+		address_input.placeholder_text = default_addr
+		join_button.text = "JOIN QUEUE"
+	else:
+		server_hint_label.text = "Enter the server IP from your host."
+		address_input.placeholder_text = "e.g. 192.168.1.42"
+		join_button.text = "JOIN QUEUE"
 
 
 func _on_solo_pressed() -> void:
@@ -61,6 +80,8 @@ func _on_host_pressed() -> void:
 
 func _on_join_pressed() -> void:
 	var address := address_input.text.strip_edges()
+	if address.is_empty():
+		address = GameConfig.get_default_server_address()
 	if address.is_empty():
 		status_label.text = "Enter the server IP, then click Join Queue."
 		return
