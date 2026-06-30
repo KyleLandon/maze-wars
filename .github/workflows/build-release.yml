@@ -38,9 +38,13 @@ jobs:
           VERSION=$(python -c "import json; print(json.load(open('version.json'))['version'])")
           echo "${VERSION}+${GITHUB_SHA::7}" > build/version.txt
           echo "Built from ${GITHUB_SHA}" > build/build-info.txt
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        id: version_meta
 
       - name: Package zip
         run: |
+          mkdir -p build/launcher
+          cp tools/launcher/Play-MazeWars.ps1 tools/launcher/Play-MazeWars.bat tools/launcher/config.json build/launcher/
           cd build
           zip -r ../MazeWars-win64.zip .
 
@@ -53,6 +57,7 @@ jobs:
           name: Latest Build
           prerelease: false
           body: |
+            Version: ${{ steps.version_meta.outputs.version }}
             Auto-built from `${{ github.sha }}` on `${{ github.ref_name }}`.
             Launcher: `MazeWars-win64.zip` · itch.io channel: `windows`
           artifacts: MazeWars-win64.zip

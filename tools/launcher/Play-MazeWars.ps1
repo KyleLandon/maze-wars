@@ -10,6 +10,15 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $ConfigPath = Join-Path $ScriptDir "config.json"
 
+$InstallRoot = Join-Path $env:LOCALAPPDATA "MazeWars"
+$InstalledLauncher = Join-Path $InstallRoot "launcher\Play-MazeWars.ps1"
+
+# After the first install, always run the launcher bundled with the game (stays current).
+if ((Test-Path $InstalledLauncher) -and ($InstalledLauncher -ne $PSCommandPath)) {
+    & $InstalledLauncher @PSBoundParameters
+    exit $LASTEXITCODE
+}
+
 Write-Host "Maze Wars launcher starting..." -ForegroundColor Cyan
 Write-Host "Folder: $ScriptDir"
 
@@ -27,14 +36,17 @@ $assetName = [string]$config.asset_name
 $executable = [string]$config.executable
 $installName = [string]$config.install_dir_name
 
+if (-not [string]::IsNullOrWhiteSpace($installName)) {
+    $InstallRoot = Join-Path $env:LOCALAPPDATA $installName
+    $InstalledLauncher = Join-Path $InstallRoot "launcher\Play-MazeWars.ps1"
+}
+
 if ($owner -eq "YOUR_GITHUB_USERNAME" -or [string]::IsNullOrWhiteSpace($owner)) {
     Write-Host "Edit tools/launcher/config.json and set your GitHub username + repo." -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
 
-$InstallRoot = Join-Path $env:LOCALAPPDATA $installName
-$VersionFile = Join-Path $InstallRoot "version.txt"
 $GameExe = Join-Path $InstallRoot $executable
 $TempZip = Join-Path $env:TEMP "MazeWars-win64-download.zip"
 
@@ -42,16 +54,44 @@ function Write-Status([string]$Message) {
     Write-Host $Message -ForegroundColor Cyan
 }
 
-function Get-LocalVersion {
-    if (Test-Path $VersionFile) {
-        return (Get-Content $VersionFile -Raw).Trim()
+function Get-LocalBuildStamp {
+    $versionFile = Join-Path $InstallRoot "version.txt"
+    if (Test-Path $versionFile) {
+        $text = (Get-Content $versionFile -Raw).Trim()
+        if ($text -match '^\d+\.\d+\+[a-f0-9]+') {
+            return $text
+        }
+    }
+    $stampFile = Join-Path $InstallRoot "update.stamp"
+    if (Test-Path $stampFile) {
+        return (Get-Content $stampFile -Raw).Trim()
     }
     return ""
 }
 
-function Save-LocalVersion([string]$Version) {
+function Get-RemoteBuildStamp($Release, $Asset) {
+    $version = ""
+    $sha = ""
+    $body = [string]$Release.body
+    if ($body -match 'Version:\s*(\S+)') {
+        $version = $matches[1]
+    }
+    if ($body -match 'Auto-built from ``([a-f0-9]+)``') {
+        $sha = $matches[1].Substring(0, [Math]::Min(7, $matches[1].Length))
+    }
+    if ($version -and $sha) {
+        return "${version}+${sha}"
+    }
+    if ($sha) {
+        return $sha
+    }
+    return "$($Asset.id)|$($Asset.updated_at)"
+}
+
+function Save-LocalBuildStamp([string]$Stamp) {
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
-    Set-Content -Path $VersionFile -Value $Version -NoNewline
+    $stampFile = Join-Path $InstallRoot "update.stamp"
+    Set-Content -Path $stampFile -Value $Stamp -NoNewline
 }
 
 function Get-LatestRelease {
@@ -88,7 +128,7 @@ function Get-ReleaseAsset($Release) {
     throw "Release '$($Release.tag_name)' has no asset named '$assetName'."
 }
 
-function Download-And-Install($Asset, [string]$RemoteVersion) {
+function Download-And-Install($Asset, [string]$RemoteStamp) {
     Write-Status "Downloading $assetName..."
     Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $TempZip -Headers @{ "User-Agent" = "MazeWars-Launcher" }
 
@@ -102,7 +142,6 @@ function Download-And-Install($Asset, [string]$RemoteVersion) {
     New-Item -ItemType Directory -Force -Path $staging | Out-Null
     Expand-Archive -Path $TempZip -DestinationPath $staging -Force
 
-    # Zip may contain files at root or inside a single subfolder.
     $payload = $staging
     $children = Get-ChildItem $staging
     if ($children.Count -eq 1 -and $children[0].PSIsContainer) {
@@ -115,13 +154,20 @@ function Download-And-Install($Asset, [string]$RemoteVersion) {
     if (Test-Path $TempZip) { Remove-Item $TempZip -Force }
     if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 
-    Save-LocalVersion $RemoteVersion
-    Write-Status "Installed version $RemoteVersion"
+    $installedStamp = Get-LocalBuildStamp
+    if ([string]::IsNullOrWhiteSpace($installedStamp)) {
+        Save-LocalBuildStamp $RemoteStamp
+        $installedStamp = $RemoteStamp
+    }
+    Write-Status "Installed build $installedStamp"
     Write-UpdaterShortcut
 }
 
 function Write-UpdaterShortcut {
-    $launcherPs1 = $PSCommandPath
+    $launcherPs1 = Join-Path $InstallRoot "launcher\Play-MazeWars.ps1"
+    if (-not (Test-Path $launcherPs1)) {
+        $launcherPs1 = $PSCommandPath
+    }
     $batPath = Join-Path $InstallRoot "UpdateAndRestart.bat"
     $content = "@echo off`r`ntitle Maze Wars Updater`r`npowershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPs1`"`r`n"
     Set-Content -Path $batPath -Value $content -Encoding ASCII
@@ -130,23 +176,20 @@ function Write-UpdaterShortcut {
 try {
     $release = Get-LatestRelease
     $asset = Get-ReleaseAsset $release
-    $remoteVersion = [string]$asset.updated_at
-    if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
-        $remoteVersion = [string]$release.published_at
-    }
-    if ([string]::IsNullOrWhiteSpace($remoteVersion)) {
-        $remoteVersion = [string]$release.tag_name
-    }
-    $localVersion = Get-LocalVersion
+    $remoteStamp = Get-RemoteBuildStamp $release $asset
+    $localStamp = Get-LocalBuildStamp
+
+    Write-Status "Local build: $(if ($localStamp) { $localStamp } else { '(none)' })"
+    Write-Status "Latest build: $remoteStamp"
 
     if ($SkipUpdate) {
         Write-Status "Skipping update check."
     }
-    elseif ($localVersion -ne $remoteVersion -or -not (Test-Path $GameExe)) {
-        Download-And-Install $asset $remoteVersion
+    elseif ($localStamp -ne $remoteStamp -or -not (Test-Path $GameExe)) {
+        Download-And-Install $asset $remoteStamp
     }
     else {
-        Write-Status "Already up to date ($localVersion)."
+        Write-Status "Already up to date ($localStamp)."
         Write-UpdaterShortcut
     }
 
@@ -168,7 +211,7 @@ catch {
     Write-Host "Common fixes:"
     Write-Host "  - Extract the whole launcher folder (do not run from inside a zip)."
     Write-Host "  - Keep Play-MazeWars.bat, Play-MazeWars.ps1, and config.json together."
-    Write-Host "  - Ask Kyle to confirm GitHub has a release with MazeWars-win64.zip."
+    Write-Host "  - Delete %LOCALAPPDATA%\MazeWars and run again to force a fresh download."
     Write-Host "  - Repo: https://github.com/$owner/$repo/releases"
     exit 1
 }

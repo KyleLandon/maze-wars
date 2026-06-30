@@ -77,8 +77,38 @@ func launch_updater() -> bool:
 func get_local_build_stamp() -> String:
 	var stamp_path := _install_dir().path_join("version.txt")
 	if FileAccess.file_exists(stamp_path):
-		return FileAccess.get_file_as_string(stamp_path).strip_edges()
+		var text := FileAccess.get_file_as_string(stamp_path).strip_edges()
+		if text.contains("+") and text.split("+", false, 1)[0].contains("."):
+			return text
+	var fallback := _install_dir().path_join("update.stamp")
+	if FileAccess.file_exists(fallback):
+		return FileAccess.get_file_as_string(fallback).strip_edges()
 	return GameVersion.version_label
+
+
+func _remote_build_stamp(data: Dictionary) -> String:
+	var body := str(data.get("body", ""))
+	var version := ""
+	var sha := ""
+	var ver_re := RegEx.new()
+	ver_re.compile("Version:\\s*(\\S+)")
+	var m_ver := ver_re.search(body)
+	if m_ver:
+		version = m_ver.get_string(1)
+	var sha_re := RegEx.new()
+	sha_re.compile("Auto-built from `([a-f0-9]+)`")
+	var m_sha := sha_re.search(body)
+	if m_sha:
+		sha = m_sha.get_string(1).substr(0, 7)
+	if not version.is_empty() and not sha.is_empty():
+		return "%s+%s" % [version, sha]
+	if not sha.is_empty():
+		return sha
+	var assets: Array = data.get("assets", [])
+	for asset in assets:
+		if asset is Dictionary and str(asset.get("name", "")) == "MazeWars-win64.zip":
+			return "%s|%s" % [str(asset.get("id", "")), str(asset.get("updated_at", ""))]
+	return str(data.get("published_at", data.get("tag_name", "")))
 
 
 func _install_dir() -> String:
@@ -119,9 +149,7 @@ func _on_request_completed(
 		check_finished.emit(false)
 		return
 
-	var remote_stamp := str(data.get("published_at", ""))
-	if remote_stamp.is_empty():
-		remote_stamp = str(data.get("tag_name", ""))
+	var remote_stamp := _remote_build_stamp(data)
 	var local_stamp := get_local_build_stamp()
 
 	has_update = not remote_stamp.is_empty() and remote_stamp != local_stamp

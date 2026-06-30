@@ -132,6 +132,7 @@ Works for exported builds only (not when running from the Godot editor).
 | Issue | Fix |
 |-------|-----|
 | itch upload skipped in Actions | Add `ITCH_API_KEY` secret; fix `tools/itch/target.txt` |
-| No UPDATE button in game | Only in exported `.exe`; needs internet; compare `version.txt` vs GitHub |
+| Launcher says “Already up to date” but game is old | Delete `%LOCALAPPDATA%\MazeWars` and run the bat again, or update your copy of `Play-MazeWars.ps1` from the repo |
+| No UPDATE button in game | Only in exported `.exe`; needs internet; compares `version.txt` (`0.1.6+abc1234`) vs GitHub release |
 | Update button does nothing | Run `Play-MazeWars.bat` once so `UpdateAndRestart.bat` is created |
 | itch game won’t update | She must use the **itch app**, not a copied `.exe` |
