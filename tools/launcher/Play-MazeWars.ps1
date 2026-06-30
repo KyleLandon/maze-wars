@@ -155,7 +155,8 @@ function Get-ReleaseManifest([string]$PayloadRoot) {
         $raw = Get-Content $bundled -Raw | ConvertFrom-Json
         $map = @{}
         foreach ($prop in $raw.PSObject.Properties) {
-            $map[Normalize-RelativePath $prop.Name] = [string]$prop.Value
+            $key = Normalize-RelativePath $prop.Name
+            $map[$key] = [string]$prop.Value
         }
         return $map
     }
