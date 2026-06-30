@@ -15,6 +15,8 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 const MAIN_MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 const CONNECT_TIMEOUT_SEC := 20.0
 const CLIENT_LOAD_FALLBACK_SEC := 3.0
+## Bump when multiplayer RPC signatures change (not every app version).
+const NET_PROTOCOL_VERSION := 2
 
 var multiplayer_mode: String = "solo"
 var is_host: bool = false
@@ -172,6 +174,40 @@ func server_send(package_id: String) -> void:
 	_match_network.handle_send_request(multiplayer.get_remote_sender_id(), package_id)
 
 
+@rpc("any_peer", "call_remote", "reliable")
+func report_client_build(protocol: int, build_label: String) -> void:
+	if not is_server():
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	if protocol != NET_PROTOCOL_VERSION:
+		_reject_peer(
+			peer_id,
+			"Build mismatch (network protocol %d vs %d).\nUpdate both players with the launcher." % [
+				protocol, NET_PROTOCOL_VERSION
+			]
+		)
+		return
+	if not _versions_compatible(build_label, GameVersion.version_label):
+		_reject_peer(
+			peer_id,
+			"Version mismatch.\nHost: v%s\nGuest: v%s\nUse the launcher on both — do not mix editor F5 with an old export." % [
+				GameVersion.version_label, build_label
+			]
+		)
+		return
+	_set_status("Guest v%s ready. Starting match..." % _base_version(build_label))
+	begin_online_match()
+
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_kick_with_message(message: String) -> void:
+	_set_status(message)
+	connection_failed.emit()
+	disconnect_game()
+	if get_tree().current_scene != null:
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+
 @rpc("authority", "call_local", "reliable")
 func rpc_load_match() -> void:
 	if get_tree().current_scene == null:
@@ -210,9 +246,7 @@ func _fail_connection(message: String) -> void:
 
 func _on_peer_connected(peer_id: int) -> void:
 	peer_connected.emit(peer_id)
-	_set_status("Guest connected (%d). Starting match..." % peer_id)
-	if is_server():
-		call_deferred("begin_online_match")
+	_set_status("Guest connected (%d). Checking version..." % peer_id)
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
@@ -223,7 +257,8 @@ func _on_peer_disconnected(peer_id: int) -> void:
 func _on_connected_to_server() -> void:
 	connected_to_server.emit()
 	_connect_started_at = -1.0
-	_set_status("Connected. Waiting for host to start...")
+	report_client_build.rpc_id(1, NET_PROTOCOL_VERSION, GameVersion.version_label)
+	_set_status("Connected. Waiting for host...")
 	_client_load_timer = CLIENT_LOAD_FALLBACK_SEC
 
 
@@ -261,3 +296,19 @@ func _try_upnp_port(port: int) -> void:
 func _set_status(text: String) -> void:
 	lobby_status = text
 	lobby_status_changed.emit(text)
+
+
+func _base_version(label: String) -> String:
+	return label.split("+")[0].strip_edges()
+
+
+func _versions_compatible(a: String, b: String) -> bool:
+	return _base_version(a) == _base_version(b)
+
+
+func _reject_peer(peer_id: int, message: String) -> void:
+	_set_status(message)
+	rpc_kick_with_message.rpc_id(peer_id, message)
+	var peer := multiplayer.multiplayer_peer
+	if peer != null:
+		peer.disconnect_peer(peer_id, true)

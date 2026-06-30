@@ -191,34 +191,6 @@ func _send_placement_error(peer_id: int, message: String) -> void:
 		rpc_placement_result.rpc_id(peer_id, false, message)
 
 
-@rpc("any_peer", "call_remote", "reliable")
-func _server_place_tower(cx: int, cy: int, tower_id: String) -> void:
-	if not multiplayer.is_server():
-		return
-	handle_place_request(multiplayer.get_remote_sender_id(), Vector2i(cx, cy), tower_id)
-
-
-@rpc("any_peer", "call_remote", "reliable")
-func _server_upgrade(cells: PackedInt32Array) -> void:
-	if not multiplayer.is_server():
-		return
-	handle_upgrade_request(multiplayer.get_remote_sender_id(), cells)
-
-
-@rpc("any_peer", "call_remote", "reliable")
-func _server_sell(cells: PackedInt32Array) -> void:
-	if not multiplayer.is_server():
-		return
-	handle_sell_request(multiplayer.get_remote_sender_id(), cells)
-
-
-@rpc("any_peer", "call_remote", "reliable")
-func _server_send(package_id: String) -> void:
-	if not multiplayer.is_server():
-		return
-	handle_send_request(multiplayer.get_remote_sender_id(), package_id)
-
-
 func _apply_place(lane, cell: Vector2i, tower_id: String, broadcast: bool) -> void:
 	if lane == null:
 		return

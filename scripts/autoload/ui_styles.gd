@@ -90,7 +90,16 @@ func _var_font(file: FontFile, weight: float) -> FontVariation:
 	return variation
 
 
+func _ensure_fonts() -> void:
+	if _font_title != null:
+		return
+	_font_title = _var_font(FONT_CINZEL, 700.0)
+	_font_title_lg = _var_font(FONT_CINZEL, 900.0)
+	_font_numbers = _var_font(FONT_ORBITRON, 700.0)
+
+
 func _label_font_for_role(role: String) -> Font:
+	_ensure_fonts()
 	match role:
 		"title":
 			return _font_title_lg
@@ -318,7 +327,9 @@ func apply_chip(panel: PanelContainer, accent: Color = BrandColors.NEON_CYAN) ->
 
 
 func style_label(label: Label, role: String = "body") -> void:
-	label.add_theme_font_override("font", _label_font_for_role(role))
+	var font := _label_font_for_role(role)
+	if font != null:
+		label.add_theme_font_override("font", font)
 	match role:
 		"title":
 			label.add_theme_font_size_override("font_size", 20)

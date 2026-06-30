@@ -50,7 +50,8 @@ Alternatives if port forwarding is awkward:
 |--------|-----|
 | Stuck on “Hosting” / “Connecting” | Host runs firewall script; guest uses host’s `192.168.x.x` IP; host clicks **HOST** before guest joins |
 | Join times out | Confirm host IP, same Wi‑Fi, firewall allows UDP 7777 |
-| Guest can’t place towers | Update to latest build; guest must join with correct host IP (`127.0.0.1` for same-PC test) |
+| RPC / checksum errors in console | **Same build on both PCs** — do not mix Godot F5 with launcher; run `Play-MazeWars.bat` on both, or F5 on both |
+| Guest can’t place towers | Same build on both; guest joins `127.0.0.1` for same-PC test |
 | Creeps look stuttery on guest | Expected to improve in v0.1.4+ (smoothed movement); host view is always smoothest |
 | Host disconnected | Guest returns to main menu automatically |
 | Only one player | Solo mode uses **SOLO VS AI** instead |
