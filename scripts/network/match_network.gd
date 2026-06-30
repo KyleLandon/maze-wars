@@ -167,8 +167,12 @@ func _apply_place(lane, cell: Vector2i, tower_id: String, broadcast: bool) -> vo
 	if tower_id != "" and previous_mode != tower_id:
 		tm.set_build_mode(tower_id)
 	var result: Dictionary = tm.try_place(cell)
-	if lane.is_local_lane():
-		_match._on_placement_result(result.get("success", false), str(result.get("reason", "")))
+	if multiplayer.is_server() and lane.control_peer_id != multiplayer.get_unique_id():
+		rpc_placement_result.rpc_id(
+			lane.control_peer_id,
+			result.get("success", false),
+			str(result.get("reason", ""))
+		)
 	if result.get("success", false) and broadcast:
 		rpc_sync_tower_placed.rpc(lane.lane_id, tower_id, cell.x, cell.y)
 
@@ -284,6 +288,13 @@ func _broadcast_creep_states() -> void:
 		if packed.is_empty():
 			continue
 		rpc_sync_creep_states.rpc(lane.lane_id, packed)
+
+
+@rpc("authority", "call_remote", "reliable")
+func rpc_placement_result(success: bool, message: String) -> void:
+	if multiplayer.is_server():
+		return
+	_match._on_placement_result(success, message)
 
 
 @rpc("authority", "call_remote", "reliable")

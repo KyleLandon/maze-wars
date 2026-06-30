@@ -44,25 +44,28 @@ func cancel_build_mode() -> void:
 	build_mode_changed.emit("")
 
 
-func try_place(grid: Vector2i) -> void:
+func try_place(grid: Vector2i) -> Dictionary:
 	if build_mode_tower_id.is_empty():
-		return
+		return { "success": false, "reason": "No build mode" }
 	var check: Dictionary = build_grid.can_place(grid, build_mode_tower_id)
 	if not check.get("valid", false):
-		placement_result.emit(false, check.get("reason", "Invalid"))
-		return
+		var reason := str(check.get("reason", "Invalid"))
+		placement_result.emit(false, reason)
+		return { "success": false, "reason": reason }
 	var def: Dictionary = BalanceConfig.get_tower_def(build_mode_tower_id)
 	var cost: int = int(def.get("cost", 0))
 	if not economy.spend(cost, "tower"):
 		placement_result.emit(false, "Not enough gold")
-		return
+		return { "success": false, "reason": "Not enough gold" }
 	var tower: Node3D = TOWER_SCENE.instantiate()
 	var parent: Node = lane_root if lane_root else get_tree().current_scene
 	parent.add_child(tower)
 	tower.setup(build_mode_tower_id, grid, owner_id, creep_spawner, self)
 	build_grid.register_tower(grid, tower)
 	towers.append(tower)
-	placement_result.emit(true, "Placed %s" % def.get("display_name", build_mode_tower_id))
+	var message := "Placed %s" % def.get("display_name", build_mode_tower_id)
+	placement_result.emit(true, message)
+	return { "success": true, "reason": message }
 
 
 func try_place_ai(tower_id: String, grid: Vector2i) -> bool:
