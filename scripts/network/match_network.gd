@@ -62,7 +62,13 @@ func setup(match_root: Node3D, lanes: Array) -> void:
 		if lane == null:
 			continue
 		_lanes_by_id[lane.lane_id] = lane
-		_lanes_by_peer[lane.control_peer_id] = lane
+	if multiplayer.is_server():
+		_rebuild_peer_lanes()
+	else:
+		for lane in lanes:
+			if lane == null:
+				continue
+			_lanes_by_peer[lane.control_peer_id] = lane
 	_client_mirror = NetworkManager.is_online() and not multiplayer.is_server()
 	if _client_mirror:
 		_disable_client_simulation(lanes)
@@ -71,6 +77,30 @@ func setup(match_root: Node3D, lanes: Array) -> void:
 		_sync_initial_state()
 	else:
 		set_process(false)
+
+
+func _rebuild_peer_lanes() -> void:
+	_lanes_by_peer.clear()
+	if _match == null:
+		return
+	var host_id := multiplayer.get_unique_id()
+	var host_lane: LaneController = null
+	var guest_lane: LaneController = null
+	for lane in _match.human_lanes:
+		if lane == null or not lane is LaneController:
+			continue
+		if lane.lane_id == "player":
+			host_lane = lane
+		elif lane.lane_id == "player_2":
+			guest_lane = lane
+	if host_lane:
+		host_lane.control_peer_id = host_id
+		_lanes_by_peer[host_id] = host_lane
+	if guest_lane:
+		var peers := multiplayer.get_peers()
+		var guest_id: int = int(peers[0]) if peers.size() > 0 else guest_lane.control_peer_id
+		guest_lane.control_peer_id = guest_id
+		_lanes_by_peer[guest_id] = guest_lane
 
 
 func _sync_initial_state() -> void:
@@ -82,7 +112,22 @@ func _sync_initial_state() -> void:
 
 
 func lane_for_peer(peer_id: int):
-	return _lanes_by_peer.get(peer_id)
+	if _lanes_by_peer.has(peer_id):
+		return _lanes_by_peer[peer_id]
+	if multiplayer.is_server() and peer_id > 0 and peer_id != multiplayer.get_unique_id():
+		return _remote_player_lane()
+	return null
+
+
+func _remote_player_lane():
+	if _match == null:
+		return null
+	for lane in _match.human_lanes:
+		if lane == null or not lane.is_player:
+			continue
+		if int(lane.control_peer_id) != int(multiplayer.get_unique_id()):
+			return lane
+	return null
 
 
 func lane_by_id(lane_id: String):
@@ -160,12 +205,16 @@ func _disable_client_simulation(lanes: Array) -> void:
 
 
 func handle_place_request(peer_id: int, cell: Vector2i, tower_id: String) -> void:
+	if peer_id <= 0 and multiplayer.is_server():
+		var peers := multiplayer.get_peers()
+		if peers.size() > 0:
+			peer_id = int(peers[0])
 	if peer_id <= 0:
 		push_warning("MatchNetwork: place request with invalid peer id %d" % peer_id)
 		return
 	var lane = lane_for_peer(peer_id)
 	if lane == null:
-		_send_placement_error(peer_id, "Lane not ready — try again")
+		send_placement_error(peer_id, "Lane not ready — try again")
 		return
 	_apply_place(lane, cell, tower_id, true)
 
@@ -182,7 +231,7 @@ func handle_send_request(peer_id: int, package_id: String) -> void:
 	_apply_send_for_peer(peer_id, package_id)
 
 
-func _send_placement_error(peer_id: int, message: String) -> void:
+func send_placement_error(peer_id: int, message: String) -> void:
 	if not multiplayer.is_server():
 		return
 	if peer_id == multiplayer.get_unique_id():

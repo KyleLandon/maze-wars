@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Maze Wars"
-config/version="0.1.7"
+config/version="0.1.8"
 run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/ui/mazewars_logo.png"
@@ -27,17 +27,16 @@ NetworkManager="*res://scripts/network/network_manager.gd"
 GameVersion="*res://scripts/autoload/game_version.gd"
 UpdateChecker="*res://scripts/autoload/update_checker.gd"
 
-[gui]
-
-theme/custom="res://theme/maze_wars_theme.tres"
-
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/mode=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom="res://theme/maze_wars_theme.tres"
 
 [input]
 

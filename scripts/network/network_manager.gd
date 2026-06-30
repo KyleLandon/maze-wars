@@ -148,9 +148,25 @@ func unregister_match_network() -> void:
 
 @rpc("any_peer", "call_remote", "reliable")
 func server_place_tower(cx: int, cy: int, tower_id: String) -> void:
-	if not is_server() or _match_network == null:
+	if not is_server():
 		return
-	_match_network.handle_place_request(multiplayer.get_remote_sender_id(), Vector2i(cx, cy), tower_id)
+	var peer_id := multiplayer.get_remote_sender_id()
+	if _match_network == null:
+		_retry_server_place(peer_id, cx, cy, tower_id)
+		return
+	_match_network.handle_place_request(peer_id, Vector2i(cx, cy), tower_id)
+
+
+func _retry_server_place(peer_id: int, cx: int, cy: int, tower_id: String) -> void:
+	for _i in 30:
+		if _match_network != null:
+			_match_network.handle_place_request(peer_id, Vector2i(cx, cy), tower_id)
+			return
+		await get_tree().process_frame
+	if _match_network != null:
+		_match_network.handle_place_request(peer_id, Vector2i(cx, cy), tower_id)
+	elif peer_id > 0:
+		push_warning("server_place_tower: match network unavailable for peer %d" % peer_id)
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -208,8 +224,9 @@ func rpc_kick_with_message(message: String) -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("authority", "call_remote", "call_local", "reliable")
 func rpc_load_match() -> void:
+	_match_loading = true
 	if get_tree().current_scene == null:
 		return
 	var path := get_tree().current_scene.scene_file_path
