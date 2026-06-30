@@ -17,7 +17,9 @@ Early **2-player LAN** support for testing. The host runs the authoritative simu
 ### Guest (your girlfriend)
 
 1. Launch the game (same build as host).
-2. Type the **host’s IP** in the box (not `127.0.0.1` unless testing on the same PC).
+2. Type the **host’s IP** in the box.
+   - **Same PC test (two windows):** use `127.0.0.1`
+   - **Two PCs on Wi‑Fi:** use the host’s `192.168.x.x` IP (not your own)
 3. Click **JOIN LAN GAME**.
 4. Should change to “Connected” then load the match within a few seconds.
 
@@ -48,7 +50,8 @@ Alternatives if port forwarding is awkward:
 |--------|-----|
 | Stuck on “Hosting” / “Connecting” | Host runs firewall script; guest uses host’s `192.168.x.x` IP; host clicks **HOST** before guest joins |
 | Join times out | Confirm host IP, same Wi‑Fi, firewall allows UDP 7777 |
-| Guest sees desynced creeps | Expected in early build; host is authoritative — report severe desync |
+| Guest can’t place towers | Update to latest build; guest must join with correct host IP (`127.0.0.1` for same-PC test) |
+| Creeps look stuttery on guest | Expected to improve in v0.1.4+ (smoothed movement); host view is always smoothest |
 | Host disconnected | Guest returns to main menu automatically |
 | Only one player | Solo mode uses **SOLO VS AI** instead |
 

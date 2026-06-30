@@ -1,8 +1,9 @@
-[gd_scene load_steps=10 format=3 uid="uid://match001"]
+[gd_scene load_steps=11 format=3 uid="uid://match001"]
 
 [ext_resource type="Script" path="res://scripts/match/match.gd" id="1_match"]
 [ext_resource type="Script" path="res://scripts/match/camera_rig.gd" id="14_camera"]
 [ext_resource type="Script" path="res://scripts/systems/send_manager.gd" id="10_send"]
+[ext_resource type="Script" path="res://scripts/network/match_network.gd" id="20_network"]
 [ext_resource type="PackedScene" uid="uid://hud001" path="res://scenes/ui/hud.tscn" id="15_hud"]
 [ext_resource type="PackedScene" uid="uid://postmatch001" path="res://scenes/ui/post_match.tscn" id="16_post"]
 [ext_resource type="PackedScene" uid="uid://debugpanel001" path="res://scenes/ui/debug_panel.tscn" id="17_debug"]
@@ -35,6 +36,9 @@ script = ExtResource("14_camera")
 
 [node name="SendManager" type="Node" parent="."]
 script = ExtResource("10_send")
+
+[node name="MatchNetwork" type="Node" parent="."]
+script = ExtResource("20_network")
 
 [node name="UI" type="CanvasLayer" parent="."]
 

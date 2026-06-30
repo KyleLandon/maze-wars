@@ -25,6 +25,11 @@ var _health_bar: Node3D
 var _core_hit_handled: bool = false
 var network_id: int = -1
 var network_drive: bool = false
+var _net_target_pos: Vector3 = Vector3.ZERO
+var _net_has_target: bool = false
+
+const NET_SNAP_DIST_SQ := 9.0
+const NET_LERP_SPEED := 14.0
 
 
 func set_network_state(net_id: int, drive: bool) -> void:
@@ -47,7 +52,11 @@ func get_network_state() -> PackedFloat32Array:
 
 
 func apply_network_state(pos: Vector3, hp_norm: float) -> void:
-	global_position = pos
+	_net_target_pos = pos
+	_net_target_pos.y = global_position.y
+	if not _net_has_target:
+		global_position = _net_target_pos
+	_net_has_target = true
 	current_health = max_health * clampf(hp_norm, 0.0, 1.0)
 	if _health_bar != null and _health_bar.has_method("update_health"):
 		_health_bar.update_health(current_health, max_health)
@@ -98,6 +107,14 @@ func _setup_health_bar() -> void:
 
 func _physics_process(delta: float) -> void:
 	if network_drive:
+		if _net_has_target:
+			if global_position.distance_squared_to(_net_target_pos) > NET_SNAP_DIST_SQ:
+				global_position = _net_target_pos
+			else:
+				global_position = global_position.lerp(
+					_net_target_pos,
+					minf(1.0, delta * NET_LERP_SPEED)
+				)
 		return
 	if _slow_timer > 0.0:
 		_slow_timer -= delta
@@ -257,6 +274,8 @@ func _at_core() -> bool:
 
 
 func take_damage(amount: float, damage_type: String, source_tower_id: String = "") -> void:
+	if network_drive:
+		return
 	var rolled_damage := BalanceConfig.roll_damage(amount)
 	var mult := BalanceConfig.get_damage_multiplier(damage_type, armor_type)
 	var final_damage := rolled_damage * mult

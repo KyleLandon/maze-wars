@@ -277,8 +277,7 @@ func apply_remote_place(tower_id: String, grid: Vector2i) -> void:
 	parent.add_child(tower)
 	tower.setup(tower_id, grid, owner_id, creep_spawner, self)
 	if NetworkManager.is_online() and not multiplayer.is_server():
-		if owner_lane != null and not owner_lane.is_local_lane():
-			tower.set_process(false)
+		tower.set_process(false)
 	build_grid.register_tower(grid, tower)
 	towers.append(tower)
 

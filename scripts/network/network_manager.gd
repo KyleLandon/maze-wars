@@ -24,6 +24,7 @@ var host_address_hint: String = ""
 var _connect_started_at: float = -1.0
 var _client_load_timer: float = -1.0
 var _match_loading: bool = false
+var _match_network: Node = null
 
 
 func _ready() -> void:
@@ -111,6 +112,7 @@ func disconnect_game() -> void:
 	_connect_started_at = -1.0
 	_client_load_timer = -1.0
 	_match_loading = false
+	_match_network = null
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
@@ -132,6 +134,42 @@ func begin_online_match() -> void:
 		return
 	_match_loading = true
 	rpc_load_match.rpc()
+
+
+func register_match_network(net: Node) -> void:
+	_match_network = net
+
+
+func unregister_match_network() -> void:
+	_match_network = null
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func server_place_tower(cx: int, cy: int, tower_id: String) -> void:
+	if not is_server() or _match_network == null:
+		return
+	_match_network.handle_place_request(multiplayer.get_remote_sender_id(), Vector2i(cx, cy), tower_id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func server_upgrade(cells: PackedInt32Array) -> void:
+	if not is_server() or _match_network == null:
+		return
+	_match_network.handle_upgrade_request(multiplayer.get_remote_sender_id(), cells)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func server_sell(cells: PackedInt32Array) -> void:
+	if not is_server() or _match_network == null:
+		return
+	_match_network.handle_sell_request(multiplayer.get_remote_sender_id(), cells)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func server_send(package_id: String) -> void:
+	if not is_server() or _match_network == null:
+		return
+	_match_network.handle_send_request(multiplayer.get_remote_sender_id(), package_id)
 
 
 @rpc("authority", "call_local", "reliable")

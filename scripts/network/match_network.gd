@@ -3,7 +3,7 @@ extends Node
 
 ## Host-authoritative multiplayer sync for 2-player matches.
 
-const SYNC_INTERVAL := 0.12
+const SYNC_INTERVAL := 0.08
 
 var _match: Node3D
 var _lanes_by_id: Dictionary = {}
@@ -55,6 +55,7 @@ static func _apply_selection_from_cells(lane, cells: PackedInt32Array) -> void:
 
 func setup(match_root: Node3D, lanes: Array) -> void:
 	_match = match_root
+	NetworkManager.register_match_network(self)
 	_lanes_by_id.clear()
 	_lanes_by_peer.clear()
 	for lane in lanes:
@@ -95,7 +96,7 @@ func request_place_tower(cell: Vector2i, tower_id: String) -> void:
 	if multiplayer.is_server():
 		_apply_place(_match.local_lane, cell, tower_id, true)
 	else:
-		_server_place_tower.rpc_id(1, cell.x, cell.y, tower_id)
+		NetworkManager.server_place_tower.rpc_id(1, cell.x, cell.y, tower_id)
 
 
 func request_upgrade() -> void:
@@ -106,7 +107,7 @@ func request_upgrade() -> void:
 	if multiplayer.is_server():
 		_apply_upgrade_for_peer(multiplayer.get_unique_id(), cells)
 	else:
-		_server_upgrade.rpc_id(1, cells)
+		NetworkManager.server_upgrade.rpc_id(1, cells)
 
 
 func request_sell() -> void:
@@ -117,7 +118,7 @@ func request_sell() -> void:
 	if multiplayer.is_server():
 		_apply_sell_for_peer(multiplayer.get_unique_id(), cells)
 	else:
-		_server_sell.rpc_id(1, cells)
+		NetworkManager.server_sell.rpc_id(1, cells)
 
 
 func request_send(package_id: String) -> void:
@@ -127,7 +128,7 @@ func request_send(package_id: String) -> void:
 	if multiplayer.is_server():
 		_apply_send_for_peer(multiplayer.get_unique_id(), package_id)
 	else:
-		_server_send.rpc_id(1, package_id)
+		NetworkManager.server_send.rpc_id(1, package_id)
 
 
 func request_build_mode(tower_id: String) -> void:
@@ -158,33 +159,64 @@ func _disable_client_simulation(lanes: Array) -> void:
 		lane.creep_spawner.set_client_mirror(true)
 
 
+func handle_place_request(peer_id: int, cell: Vector2i, tower_id: String) -> void:
+	if peer_id <= 0:
+		push_warning("MatchNetwork: place request with invalid peer id %d" % peer_id)
+		return
+	var lane = lane_for_peer(peer_id)
+	if lane == null:
+		_send_placement_error(peer_id, "Lane not ready — try again")
+		return
+	_apply_place(lane, cell, tower_id, true)
+
+
+func handle_upgrade_request(peer_id: int, cells: PackedInt32Array) -> void:
+	_apply_upgrade_for_peer(peer_id, cells)
+
+
+func handle_sell_request(peer_id: int, cells: PackedInt32Array) -> void:
+	_apply_sell_for_peer(peer_id, cells)
+
+
+func handle_send_request(peer_id: int, package_id: String) -> void:
+	_apply_send_for_peer(peer_id, package_id)
+
+
+func _send_placement_error(peer_id: int, message: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if peer_id == multiplayer.get_unique_id():
+		_match._on_placement_result(false, message)
+	else:
+		rpc_placement_result.rpc_id(peer_id, false, message)
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func _server_place_tower(cx: int, cy: int, tower_id: String) -> void:
 	if not multiplayer.is_server():
 		return
-	var peer_id := multiplayer.get_remote_sender_id()
-	_apply_place(lane_for_peer(peer_id), Vector2i(cx, cy), tower_id, true)
+	handle_place_request(multiplayer.get_remote_sender_id(), Vector2i(cx, cy), tower_id)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func _server_upgrade(cells: PackedInt32Array) -> void:
 	if not multiplayer.is_server():
 		return
-	_apply_upgrade_for_peer(multiplayer.get_remote_sender_id(), cells)
+	handle_upgrade_request(multiplayer.get_remote_sender_id(), cells)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func _server_sell(cells: PackedInt32Array) -> void:
 	if not multiplayer.is_server():
 		return
-	_apply_sell_for_peer(multiplayer.get_remote_sender_id(), cells)
+	handle_sell_request(multiplayer.get_remote_sender_id(), cells)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func _server_send(package_id: String) -> void:
 	if not multiplayer.is_server():
 		return
-	_apply_send_for_peer(multiplayer.get_remote_sender_id(), package_id)
+	handle_send_request(multiplayer.get_remote_sender_id(), package_id)
 
 
 func _apply_place(lane, cell: Vector2i, tower_id: String, broadcast: bool) -> void:

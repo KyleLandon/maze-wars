@@ -4,7 +4,6 @@ extends Node3D
 
 const LaneControllerScript := preload("res://scripts/systems/lane_controller.gd")
 const MatchWaveCoordinatorScript := preload("res://scripts/systems/match_wave_coordinator.gd")
-const MatchNetworkScript := preload("res://scripts/network/match_network.gd")
 
 @onready var camera: Camera3D = $CameraRig
 @onready var hud: Control = $UI/HUD
@@ -14,13 +13,13 @@ const MatchNetworkScript := preload("res://scripts/network/match_network.gd")
 @onready var pause_menu: Control = $UI/PauseMenu
 @onready var lanes_root: Node3D = $Lanes
 @onready var send_manager: SendManager = $SendManager
+@onready var network: MatchNetwork = $MatchNetwork
 
 var local_lane: LaneController
 var opponent_lane: LaneController
 var human_lanes: Array = []
 var ai_lanes: Array = []
 var wave_coordinator: MatchWaveCoordinator
-var network: MatchNetwork
 var builder: CharacterBody3D
 var _match_over: bool = false
 var _hover_cell: Vector2i = Vector2i(-1, -1)
@@ -34,9 +33,6 @@ func _ready() -> void:
 	LaneCoords.load_from_config()
 	_spawn_lanes()
 	_setup_wave_coordinator()
-	network = MatchNetworkScript.new()
-	network.name = "MatchNetwork"
-	add_child(network)
 	network.set_multiplayer_authority(1)
 	var all_lanes: Array = human_lanes.duplicate()
 	all_lanes.append_array(ai_lanes)
@@ -49,6 +45,10 @@ func _ready() -> void:
 	GameConfig.match_start_time = Time.get_ticks_msec() / 1000.0
 	if NetworkManager.is_online():
 		NetworkManager.peer_disconnected.connect(_on_peer_disconnected)
+
+
+func _exit_tree() -> void:
+	NetworkManager.unregister_match_network()
 
 
 func _spawn_lanes() -> void:
