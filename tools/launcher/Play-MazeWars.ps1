@@ -316,9 +316,90 @@ function Get-ReleaseAsset($Release) {
     throw "Release '$($Release.tag_name)' has no asset named '$assetName'."
 }
 
+function Test-ZipFile([string]$Path) {
+    if (-not (Test-Path $Path)) {
+        return $false
+    }
+    $length = (Get-Item $Path).Length
+    if ($length -lt 22) {
+        return $false
+    }
+    $bytes = [byte[]](Get-Content -Path $Path -Encoding Byte -TotalCount 2)
+    return ($bytes[0] -eq 0x50 -and $bytes[1] -eq 0x4B)
+}
+
+function Download-ReleaseAsset($Asset) {
+    $expectedSize = [long]$Asset.size
+    $downloadUrl = [string]$Asset.url
+    if ([string]::IsNullOrWhiteSpace($downloadUrl)) {
+        $downloadUrl = [string]$Asset.browser_download_url
+    }
+
+    $headers = @{
+        "User-Agent" = "MazeWars-Launcher"
+        "Accept"     = "application/octet-stream"
+    }
+
+    $maxAttempts = 3
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        if (Test-Path $TempZip) {
+            Remove-Item $TempZip -Force
+        }
+
+        $sizeLabel = if ($expectedSize -gt 0) {
+            ([math]::Round($expectedSize / 1MB, 1)).ToString() + " MB"
+        }
+        else {
+            "unknown size"
+        }
+        Write-Status "Downloading $assetName ($sizeLabel) - attempt $attempt of $maxAttempts..."
+
+        try {
+            Invoke-WebRequest `
+                -Uri $downloadUrl `
+                -OutFile $TempZip `
+                -Headers $headers `
+                -UseBasicParsing `
+                -MaximumRedirection 10 `
+                -TimeoutSec 600
+        }
+        catch {
+            if ($attempt -ge $maxAttempts) {
+                throw "Download failed: $($_.Exception.Message)"
+            }
+            Write-Status "Download failed. Retrying..."
+            Start-Sleep -Seconds 2
+            continue
+        }
+
+        if (-not (Test-ZipFile $TempZip)) {
+            if ($attempt -ge $maxAttempts) {
+                throw "Downloaded file is not a valid zip. Check your connection or try again."
+            }
+            Write-Status "Download corrupt or incomplete. Retrying..."
+            Start-Sleep -Seconds 2
+            continue
+        }
+
+        if ($expectedSize -gt 0) {
+            $actualSize = (Get-Item $TempZip).Length
+            if ($actualSize -ne $expectedSize) {
+                if ($attempt -ge $maxAttempts) {
+                    throw "Download incomplete ($actualSize of $expectedSize bytes)."
+                }
+                Write-Status "Download incomplete ($actualSize / $expectedSize bytes). Retrying..."
+                Start-Sleep -Seconds 2
+                continue
+            }
+        }
+
+        Write-Status "Download complete."
+        return
+    }
+}
+
 function Download-And-Install($Asset, [string]$RemoteStamp) {
-    Write-Status "Downloading $assetName..."
-    Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $TempZip -Headers @{ "User-Agent" = "MazeWars-Launcher" }
+    Download-ReleaseAsset $Asset
 
     Write-Status "Preparing install at $InstallRoot..."
     Stop-RunningGame
@@ -422,6 +503,7 @@ catch {
     Write-Host "  - Extract the whole launcher folder (do not run from inside a zip)."
     Write-Host "  - Keep Play-MazeWars.bat, Play-MazeWars.ps1, and config.json together."
     Write-Host "  - Close Maze Wars if an update failed while the game was running."
+    Write-Host "  - Check your internet connection and run the launcher again."
     Write-Host "  - Run Play-MazeWars.ps1 -ForceFullReinstall for a clean reinstall."
     Write-Host "  - Repo: https://github.com/$owner/$repo/releases"
     exit 1
